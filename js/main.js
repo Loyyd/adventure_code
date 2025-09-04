@@ -151,6 +151,11 @@ function updateBiome() {
     if (newBiome !== currentBiome && newBiome !== 'VOID') {
         currentBiome = newBiome;
         ui.updateBiome(currentBiome);
+        
+        // Show biome transition notification
+        if (biomes[currentBiome]) {
+            ui.showBiomeTransition(currentBiome, biomes[currentBiome].color);
+        }
     }
 }
 

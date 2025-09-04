@@ -17,6 +17,7 @@ export class Interface {
         this.createInteractionUI();
         this.createTimeUI();
         this.createItemNotificationUI();
+        this.createBiomeTransitionUI();
         this.createDebugUI();
         
         // Set up inventory update callback
@@ -261,6 +262,22 @@ export class Interface {
         document.body.appendChild(this.notificationContainer);
     }
 
+    createBiomeTransitionUI() {
+        // Create biome transition notification container
+        this.biomeTransitionContainer = document.createElement('div');
+        this.biomeTransitionContainer.id = 'biomeTransitionContainer';
+        this.biomeTransitionContainer.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2500;
+            pointer-events: none;
+            display: none;
+        `;
+        document.body.appendChild(this.biomeTransitionContainer);
+    }
+
     showItemNotification(items) {
         if (!items || items.length === 0) return;
         
@@ -408,6 +425,124 @@ export class Interface {
                 messageElement.parentNode.removeChild(messageElement);
             }
         }, duration);
+    }
+
+    showBiomeTransition(biomeName, biomeColor) {
+        if (!this.biomeTransitionContainer) return;
+
+        // Format biome name for display (capitalize each word)
+        const formattedBiomeName = biomeName.toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+        // Create the transition notification
+        const biomeNotification = document.createElement('div');
+        biomeNotification.style.cssText = `
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+            color: white;
+            padding: 30px 50px;
+            border-radius: 20px;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 3px solid #${biomeColor.toString(16).padStart(6, '0')};
+            backdrop-filter: blur(10px);
+            min-width: 300px;
+            animation: biomeTransitionAnimation 2s ease-in-out forwards;
+        `;
+
+        // Add the entering text
+        const enteringText = document.createElement('div');
+        enteringText.style.cssText = `
+            font-size: 16px;
+            color: #cccccc;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+            opacity: 0;
+            animation: textFadeIn 0.5s ease-in-out 0.3s forwards;
+        `;
+        enteringText.textContent = 'Entering';
+
+        // Add the biome name
+        const biomeNameElement = document.createElement('div');
+        biomeNameElement.style.cssText = `
+            font-size: 32px;
+            font-weight: bold;
+            color: #${biomeColor.toString(16).padStart(6, '0')};
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            letter-spacing: 2px;
+            opacity: 0;
+            animation: textFadeIn 0.5s ease-in-out 0.6s forwards;
+        `;
+        biomeNameElement.textContent = formattedBiomeName;
+
+        // Add some decorative elements
+        const decorator = document.createElement('div');
+        decorator.style.cssText = `
+            font-size: 20px;
+            margin: 15px 0;
+            opacity: 0;
+            animation: textFadeIn 0.5s ease-in-out 0.9s forwards;
+        `;
+        decorator.textContent = '◆ ◇ ◆';
+
+        biomeNotification.appendChild(enteringText);
+        biomeNotification.appendChild(biomeNameElement);
+        biomeNotification.appendChild(decorator);
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes biomeTransitionAnimation {
+                0% { 
+                    opacity: 0; 
+                    transform: scale(0.3) translateY(50px);
+                }
+                10% { 
+                    opacity: 1; 
+                    transform: scale(1.1) translateY(0px);
+                }
+                15% { 
+                    transform: scale(1) translateY(0px);
+                }
+                85% { 
+                    opacity: 1; 
+                    transform: scale(1) translateY(0px);
+                }
+                95% { 
+                    opacity: 0.7; 
+                    transform: scale(0.9) translateY(-20px);
+                }
+                100% { 
+                    opacity: 0; 
+                    transform: scale(0.5) translateY(-50px);
+                }
+            }
+            
+            @keyframes textFadeIn {
+                0% { 
+                    opacity: 0; 
+                    transform: translateY(10px);
+                }
+                100% { 
+                    opacity: 1; 
+                    transform: translateY(0px);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Clear any existing notification
+        this.biomeTransitionContainer.innerHTML = '';
+        this.biomeTransitionContainer.appendChild(biomeNotification);
+        this.biomeTransitionContainer.style.display = 'block';
+
+        // Hide after animation completes
+        setTimeout(() => {
+            this.biomeTransitionContainer.style.display = 'none';
+            this.biomeTransitionContainer.innerHTML = '';
+        }, 2000);
     }
 
     showCampfireDialog(campfire, requiredSticks) {
