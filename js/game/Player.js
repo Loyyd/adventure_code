@@ -1,0 +1,476 @@
+import { Inventory } from './Inventory.js';
+
+export class Player {
+    constructor(scene) {
+        this.scene = scene;
+        this.position = { x: 0, z: 0 };
+        this.mesh = new THREE.Group();
+        this.mixer = null;
+        this.animations = {};
+        this.currentAnimation = null;
+        this.targetRotation = 0;
+        this.rotationSpeed = 0.1; // Adjust this value to control rotation speed (0.1 = smooth, 1.0 = instant)
+        this.interactionRange = 1.8; // Maximum distance for interactions in world units
+        this.currentInteractionTarget = null; // Store the current object being interacted with
+        this.inventory = new Inventory(); // Add inventory system
+        this.selectedTool = null; // Currently selected tool from hotbar
+        
+        // Don't add initial tools - let player find them
+        console.log('Player created with empty inventory:');
+        this.inventory.displayInventory();
+        
+        // Interaction timing system
+        this.interactionStartTime = null;
+        this.interactionDuration = 3000; // 3 seconds in milliseconds
+        this.isInteractionInProgress = false;
+        this.interactionProgressCallback = null; // Callback for UI updates
+        this.justCompletedInteraction = false; // Flag to prevent immediate re-interaction
+        this.completionCooldownTime = 500; // Half second cooldown after completion
+        
+        this.loadCharacterModel();
+        scene.add(this.mesh);
+    }
+
+    async loadCharacterModel() {
+        const loader = new THREE.GLTFLoader();
+        try {
+            const gltf = await loader.loadAsync('glb/character/character.glb');
+            const model = gltf.scene;
+            model.traverse((node) => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                }
+            });
+
+            // Scale and position the model as needed
+            model.scale.set(1, 1, 1);
+            this.mesh.add(model);
+
+            // Setup animations
+            this.mixer = new THREE.AnimationMixer(model);
+            console.log('Available animations:', gltf.animations.map(a => a.name));
+            gltf.animations.forEach((clip) => {
+                this.animations[clip.name] = this.mixer.clipAction(clip);
+            });
+
+            // Set default idle animation
+            if (this.animations['Rig|Idle']) {
+                console.log('Playing initial Idle animation');
+                this.playAnimation('Rig|Idle');
+            } else {
+                console.error('Idle animation not found!');
+                console.log('Available animations:', Object.keys(this.animations));
+            }
+        } catch (error) {
+            console.error('Error loading character model:', error);
+        }
+    }
+
+    playAnimation(name) {
+        // If animations aren't loaded yet, just return silently
+        if (!this.mixer || Object.keys(this.animations).length === 0) {
+            return;
+        }
+
+        if (this.currentAnimation === name) return; // Don't restart if it's already playing
+        
+        if (this.currentAnimation) {
+            const prevAnim = this.animations[this.currentAnimation];
+            if (prevAnim) {
+                prevAnim.fadeOut(0.2);
+            }
+        }
+
+        const newAnim = this.animations[name];
+        if (newAnim) {
+            newAnim.reset().fadeIn(0.2).play();
+            this.currentAnimation = name;
+        }
+    }
+
+    move(x, z, isMoving = false, isInteracting = false, interactionTarget = null) {
+        const dx = x - this.position.x;
+        const dz = z - this.position.z;
+        
+        // Update position
+        this.position.x = x;
+        this.position.z = z;
+        this.mesh.position.x = x;
+        this.mesh.position.z = z;
+
+        // Handle interaction logic
+        if (isInteracting && interactionTarget) {
+            if (this.tryStartInteraction(interactionTarget)) {
+                // Interaction is valid and started/continuing
+                if (this.currentAnimation !== 'Rig|Interact') {
+                    this.playAnimation('Rig|Interact');
+                }
+            } else {
+                // Interaction failed or stopped
+                this.stopInteraction();
+                if (this.currentAnimation !== 'Rig|Idle') {
+                    this.playAnimation('Rig|Idle');
+                }
+            }
+        } else {
+            // Not interacting anymore
+            this.stopInteraction();
+            
+            if (isMoving && (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001)) {
+                // Calculate target rotation angle based on movement direction
+                this.targetRotation = Math.atan2(dx, dz);
+
+                // Play running animation
+                if (this.currentAnimation !== 'Rig|Running_A') {
+                    this.playAnimation('Rig|Running_A');
+                }
+            } else if (!isMoving) {
+                // Play idle animation when not moving
+                if (this.currentAnimation !== 'Rig|Idle') {
+                    this.playAnimation('Rig|Idle');
+                }
+            }
+        }
+    }
+
+    update(deltaTime) {
+        if (this.mixer) {
+            this.mixer.update(deltaTime);
+        }
+
+        // Handle interaction timing
+        this.updateInteraction();
+
+        // Smooth rotation interpolation
+        if (this.mesh.rotation.y !== this.targetRotation) {
+            // Calculate the shortest rotation direction
+            let delta = this.targetRotation - this.mesh.rotation.y;
+            
+            // Normalize the angle to [-PI, PI]
+            while (delta > Math.PI) delta -= 2 * Math.PI;
+            while (delta < -Math.PI) delta += 2 * Math.PI;
+            
+            // Apply smooth rotation
+            this.mesh.rotation.y += delta * this.rotationSpeed;
+            
+            // Normalize the current rotation
+            while (this.mesh.rotation.y > Math.PI) this.mesh.rotation.y -= 2 * Math.PI;
+            while (this.mesh.rotation.y < -Math.PI) this.mesh.rotation.y += 2 * Math.PI;
+        }
+    }
+
+    isItemInRange(itemPosition) {
+        const dx = itemPosition.x - this.position.x;
+        const dz = itemPosition.z - this.position.z;
+        const distanceSquared = dx * dx + dz * dz;
+        return distanceSquared <= (this.interactionRange * this.interactionRange);
+    }
+
+    isItemSelectable(item) {
+        // Debug the item properties
+        console.log('Checking item:', item);
+        
+        const assetType = this.getAssetType(item);
+        console.log('Asset type detected:', assetType);
+        
+        // Check if item is a valid interactable asset
+        const validAssets = ['grass', 'bush', 'tree', 'rock', 'campfire'];
+        return validAssets.includes(assetType);
+    }
+
+    canInteractWithAsset(assetType) {
+        // Rules for tool requirements
+        switch(assetType) {
+            case 'tree':
+                const hasAxe = this.selectedTool === 'axe';
+                console.log(`Tree interaction: selected tool = ${this.selectedTool}, has axe = ${hasAxe}`);
+                return hasAxe;
+            case 'rock':
+                const hasPickaxe = this.selectedTool === 'pickaxe';
+                console.log(`Rock interaction: selected tool = ${this.selectedTool}, has pickaxe = ${hasPickaxe}`);
+                return hasPickaxe;
+            case 'grass':
+            case 'bush':
+                console.log(`${assetType} interaction: no tool required`);
+                return true; // No tool required
+            case 'campfire':
+                console.log('Campfire interaction: always allowed');
+                return true; // Can always interact with campfire
+            default:
+                console.log(`Unknown asset type: ${assetType}`);
+                return false;
+        }
+    }
+
+    setSelectedTool(tool) {
+        this.selectedTool = tool;
+        console.log(`Selected tool: ${tool || 'none'}`);
+    }
+
+    getSelectedTool() {
+        return this.selectedTool;
+    }
+
+    faceTowards(position) {
+        const dx = position.x - this.position.x;
+        const dz = position.z - this.position.z;
+        this.targetRotation = Math.atan2(dx, dz);
+    }
+
+    tryStartInteraction(item) {
+        if (!item) return false;
+
+        // If we just completed an interaction, don't start a new one immediately
+        if (this.justCompletedInteraction) {
+            return false;
+        }
+
+        // If we're already interacting with a different item, stop current interaction
+        if (this.currentInteractionTarget && this.currentInteractionTarget !== item) {
+            this.stopInteraction();
+        }
+
+        // Check if item is valid for interaction and we have the required tool
+        const assetType = this.getAssetType(item);
+        if (this.isItemSelectable(item) && this.isItemInRange(item.position)) {
+            // Check if we have the required tool
+            if (!this.canInteractWithAsset(assetType)) {
+                console.log(`Cannot interact with ${assetType}: missing required tool`);
+                return false;
+            }
+
+            // If this is a new interaction, start timing
+            if (!this.isInteractionInProgress) {
+                this.startInteraction(item);
+            }
+            
+            this.currentInteractionTarget = item;
+            this.faceTowards(item.position);
+            return true;
+        }
+
+        this.stopInteraction();
+        return false;
+    }
+
+    startInteraction(item) {
+        console.log('Starting interaction with:', item);
+        this.isInteractionInProgress = true;
+        this.interactionStartTime = Date.now();
+        this.currentInteractionTarget = item;
+        
+        // Notify UI about interaction start
+        if (this.interactionProgressCallback) {
+            this.interactionProgressCallback(0, this.interactionDuration, item.position);
+        }
+    }
+
+    stopInteraction() {
+        if (this.isInteractionInProgress) {
+            console.log('Stopping interaction');
+            this.isInteractionInProgress = false;
+            this.interactionStartTime = null;
+            this.currentInteractionTarget = null;
+            
+            // Notify UI about interaction stop
+            if (this.interactionProgressCallback) {
+                this.interactionProgressCallback(null, null, null);
+            }
+        }
+    }
+
+    updateInteraction() {
+        if (!this.isInteractionInProgress || !this.interactionStartTime) {
+            return;
+        }
+
+        const elapsed = Date.now() - this.interactionStartTime;
+        const progress = Math.min(elapsed / this.interactionDuration, 1.0);
+        
+        // Update UI progress
+        if (this.interactionProgressCallback) {
+            const targetPos = this.currentInteractionTarget ? this.currentInteractionTarget.position : null;
+            this.interactionProgressCallback(elapsed, this.interactionDuration, targetPos);
+        }
+
+        // Check if interaction is complete
+        if (elapsed >= this.interactionDuration) {
+            this.completeInteraction();
+        }
+    }
+
+    completeInteraction() {
+        if (!this.currentInteractionTarget) {
+            this.stopInteraction();
+            return;
+        }
+
+        console.log('Interaction completed!');
+        
+        // Store the target before processing to prevent re-interaction
+        const completedTarget = this.currentInteractionTarget;
+        
+        // Set completion flag to prevent immediate re-interaction
+        this.justCompletedInteraction = true;
+        
+        // Determine asset type for special handling
+        const assetType = this.getAssetType(completedTarget);
+        console.log('Asset type:', assetType);
+        
+        if (assetType === 'campfire') {
+            this.handleCampfireInteraction(completedTarget);
+        } else if (assetType) {
+            // Process normal item drops
+            const receivedItems = this.inventory.processAssetDrops(assetType);
+            
+            // Remove the asset from the scene (it disappears)
+            this.removeAssetFromScene(completedTarget);
+            
+            // Show feedback to player
+            if (receivedItems.length > 0) {
+                console.log(`🎁 You received: ${receivedItems.join(', ')}`);
+            } else {
+                console.log('No items found this time');
+            }
+        }
+
+        // Stop the interaction and clear the target
+        this.stopInteraction();
+        this.currentInteractionTarget = null;
+        
+        // Clear the completion flag after a brief delay
+        setTimeout(() => {
+            this.justCompletedInteraction = false;
+        }, this.completionCooldownTime);
+    }
+
+    handleCampfireInteraction(campfire) {
+        // Check if campfire is already active
+        if (campfire.userData && campfire.userData.isActive) {
+            console.log('Campfire is already lit!');
+            if (window.gameInterface) {
+                window.gameInterface.showMessage('The campfire is already burning bright!');
+            }
+            return;
+        }
+
+        // Check if player has enough sticks
+        const requiredSticks = 20;
+        const hasEnoughSticks = this.inventory.hasItem('sticks', requiredSticks);
+
+        if (hasEnoughSticks) {
+            // Show confirmation dialog
+            this.showCampfireBuildDialog(campfire, requiredSticks);
+        } else {
+            const currentSticks = this.inventory.getItemCount('sticks');
+            console.log(`Not enough sticks! Need ${requiredSticks}, have ${currentSticks}`);
+            if (window.gameInterface) {
+                window.gameInterface.showMessage(`You need ${requiredSticks} sticks to build the campfire. You have ${currentSticks}.`);
+            }
+        }
+    }
+
+    showCampfireBuildDialog(campfire, requiredSticks) {
+        // This will be handled by the UI system
+        if (window.gameInterface) {
+            window.gameInterface.showCampfireDialog(campfire, requiredSticks);
+        } else {
+            // Fallback: auto-confirm for now
+            this.buildCampfire(campfire, requiredSticks);
+        }
+    }
+
+    buildCampfire(campfire, requiredSticks) {
+        // Remove sticks from inventory
+        if (this.inventory.removeItem('sticks', requiredSticks)) {
+            // Activate the campfire
+            if (window.gameWorld) {
+                window.gameWorld.activateCampfire(campfire);
+                console.log('🔥 Campfire built successfully!');
+                if (window.gameInterface) {
+                    window.gameInterface.showMessage('🔥 Campfire built! The warm light pushes back the darkness.');
+                }
+            }
+        } else {
+            console.log('Failed to remove sticks from inventory');
+        }
+    }
+
+    getAssetType(asset) {
+        // Check material name first
+        let assetType = null;
+        
+        asset.traverse((child) => {
+            if (child.isMesh && child.material && child.material.name) {
+                const materialName = child.material.name.toLowerCase();
+                console.log('Checking material name:', materialName);
+                if (materialName.includes('grass')) {
+                    assetType = 'grass';
+                } else if (materialName.includes('bush')) {
+                    assetType = 'bush';
+                } else if (materialName.includes('tree')) {
+                    assetType = 'tree';
+                } else if (materialName.includes('rock')) {
+                    assetType = 'rock';
+                }
+            }
+        });
+        
+        // Fallback: check by material name pattern created in World.js
+        if (!assetType) {
+            asset.traverse((child) => {
+                if (child.isMesh && child.material && child.material.name) {
+                    const materialName = child.material.name;
+                    if (materialName.endsWith('Material')) {
+                        // Extract the type from material names like "grassMaterial", "treeMaterial", etc.
+                        const typeMatch = materialName.match(/^(\w+)Material$/);
+                        if (typeMatch) {
+                            assetType = typeMatch[1];
+                        }
+                    }
+                }
+            });
+        }
+        
+        console.log('Detected asset type:', assetType);
+        return assetType;
+    }
+
+    removeAssetFromScene(asset) {
+        // Remove from scene
+        this.scene.remove(asset);
+        
+        // Remove from world's asset instances tracking
+        // This requires access to the world instance, which we'll need to pass or store
+        if (window.gameWorld && window.gameWorld.assetInstances) {
+            for (const [type, instances] of window.gameWorld.assetInstances) {
+                const index = instances.indexOf(asset);
+                if (index !== -1) {
+                    instances.splice(index, 1);
+                    console.log(`Removed ${type} asset from tracking`);
+                    break;
+                }
+            }
+        }
+    }
+
+    setInteractionProgressCallback(callback) {
+        this.interactionProgressCallback = callback;
+    }
+
+    // Legacy method for compatibility
+    tryInteract(item) {
+        return this.tryStartInteraction(item);
+    }
+
+    // Public method to check asset type (used by main.js for outline colors)
+    getAssetTypePublic(item) {
+        return this.getAssetType(item);
+    }
+
+    // Public method to check tool requirements (used by main.js for outline colors)
+    canInteractWithAssetPublic(assetType) {
+        return this.canInteractWithAsset(assetType);
+    }
+}

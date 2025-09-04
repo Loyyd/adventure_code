@@ -1,0 +1,207 @@
+export class Controls {
+    constructor() {
+        this.keys = {};
+        this.isInteracting = false;
+        this.lastMousePosition = { x: 0, y: 0 }; // Track mouse position
+        this.onInventoryToggle = null; // Callback for inventory toggle
+        this.onHotbarSelection = null; // Callback for hotbar slot selection
+        this.onDebugToggle = null; // Callback for debug mode toggle
+        this.debugMode = false;
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        document.addEventListener('keydown', (e) => {
+            this.keys[e.code] = true;
+            
+            // Handle inventory toggle
+            if (e.code === 'KeyI' && this.onInventoryToggle) {
+                this.onInventoryToggle();
+            }
+            
+            // Handle debug mode toggle (P key)
+            if (e.code === 'KeyP') {
+                this.debugMode = !this.debugMode;
+                if (this.onDebugToggle) {
+                    this.onDebugToggle(this.debugMode);
+                }
+                console.log(`Debug mode: ${this.debugMode ? 'ON' : 'OFF'}`);
+            }
+            
+            // Debug mode controls
+            if (this.debugMode) {
+                switch(e.code) {
+                    case 'KeyT': // T - Teleport to campfire
+                        if (window.gameWorld) {
+                            this.teleportToCampfire();
+                        }
+                        break;
+                    case 'KeyN': // N - Toggle day/night cycle
+                        if (window.gameDayNight) {
+                            window.gameDayNight.togglePause();
+                            console.log('Day/night cycle toggled');
+                        }
+                        break;
+                    case 'KeyM': // M - Set to day
+                        if (window.gameDayNight) {
+                            window.gameDayNight.setTimeOfDay(0.5); // Noon
+                            console.log('Time set to day');
+                        }
+                        break;
+                    case 'KeyB': // B - Set to night
+                        if (window.gameDayNight) {
+                            window.gameDayNight.setTimeOfDay(0.0); // Midnight
+                            console.log('Time set to night');
+                        }
+                        break;
+                }
+            }
+            
+            // Handle hotbar number keys 1-4
+            if (this.onHotbarSelection) {
+                switch(e.code) {
+                    case 'Digit1':
+                        this.onHotbarSelection(0);
+                        break;
+                    case 'Digit2':
+                        this.onHotbarSelection(1);
+                        break;
+                    case 'Digit3':
+                        this.onHotbarSelection(2);
+                        break;
+                    case 'Digit4':
+                        this.onHotbarSelection(3);
+                        break;
+                }
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => this.keys[e.code] = false);
+        
+        // Track mouse position
+        document.addEventListener('mousemove', (e) => {
+            this.lastMousePosition.x = e.clientX;
+            this.lastMousePosition.y = e.clientY;
+        });
+        
+        // Add mouse click listener
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // Left click
+                this.isInteracting = true;
+            }
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 0) { // Left click
+                this.isInteracting = false;
+            }
+        });
+    }
+
+    getMovement() {
+        const speed = 0.1;
+        let movement = { x: 0, z: 0, moved: false };
+
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) {
+            movement.z -= speed;
+            movement.moved = true;
+        }
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) {
+            movement.z += speed;
+            movement.moved = true;
+        }
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) {
+            movement.x -= speed;
+            movement.moved = true;
+        }
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) {
+            movement.x += speed;
+            movement.moved = true;
+        }
+
+        return movement;
+    }
+
+    isPlayerInteracting() {
+        return this.isInteracting;
+    }
+
+    getLastMousePosition() {
+        return this.lastMousePosition;
+    }
+
+    giveDebugItems() {
+        // Give useful debug items
+        const player = window.gamePlayer;
+        if (player && player.inventory) {
+            player.inventory.addItem('sticks', 50);
+            player.inventory.addItem('wood', 20);
+            player.inventory.addItem('stone', 10);
+            player.inventory.addItem('axe', 1);
+            player.inventory.addItem('pickaxe', 1);
+            console.log('Debug items added to inventory');
+            if (window.gameInterface) {
+                window.gameInterface.showMessage('Debug items added to inventory!');
+            }
+        }
+    }
+
+    teleportToCampfire() {
+        // Find and teleport to campfire
+        const world = window.gameWorld;
+        const player = window.gamePlayer;
+        if (world && world.assetInstances && player) {
+            const campfires = world.assetInstances.get('campfire');
+            if (campfires && campfires.length > 0) {
+                const campfire = campfires[0];
+                player.position.x = campfire.position.x + 2; // Offset a bit
+                player.position.z = campfire.position.z + 2;
+                player.mesh.position.x = player.position.x;
+                player.mesh.position.z = player.position.z;
+                
+                // Update camera
+                if (window.gameCamera) {
+                    window.gameCamera.setTarget(player.position.x, player.position.z);
+                }
+                
+                console.log('Teleported to campfire at:', campfire.position);
+                if (window.gameInterface) {
+                    window.gameInterface.showMessage('Teleported to campfire!');
+                }
+            } else {
+                console.log('No campfire found');
+                if (window.gameInterface) {
+                    window.gameInterface.showMessage('No campfire found in the world');
+                }
+            }
+        }
+    }
+
+    isDebugMode() {
+        return this.debugMode;
+    }
+
+    listAllAssets() {
+        console.log('=== ASSET DEBUG INFO ===');
+        const world = window.gameWorld;
+        if (world && world.assetInstances) {
+            for (const [type, instances] of world.assetInstances) {
+                console.log(`${type.toUpperCase()}: ${instances.length} instances`);
+                instances.forEach((instance, index) => {
+                    console.log(`  ${index}: Position (${instance.position.x.toFixed(2)}, ${instance.position.y.toFixed(2)}, ${instance.position.z.toFixed(2)})`);
+                    if (type === 'campfire') {
+                        console.log(`    Active: ${instance.userData?.isActive || false}`);
+                        console.log(`    Asset Type: ${instance.userData?.assetType || 'undefined'}`);
+                    }
+                });
+            }
+        } else {
+            console.log('No world or asset instances found');
+        }
+        console.log('=== END ASSET DEBUG ===');
+        
+        if (window.gameInterface) {
+            window.gameInterface.showMessage('Asset info logged to console (F12)');
+        }
+    }
+}
