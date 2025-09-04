@@ -9,9 +9,9 @@ from datetime import datetime
 from pathlib import Path
 import mimetypes
 
-PORT = 8000
+PORT = 8001
 
-def find_available_port(start_port=8001, max_attempts=10):
+def find_available_port(start_port=8002, max_attempts=10):
     """Find an available port starting from start_port"""
     for port in range(start_port, start_port + max_attempts):
         try:
