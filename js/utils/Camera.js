@@ -96,7 +96,6 @@ export class Camera {
 
     toggleFlyMode() {
         this.flyMode = !this.flyMode;
-        console.log(`Fly mode: ${this.flyMode ? 'ON' : 'OFF'}`);
         if (window.gameInterface) {
             window.gameInterface.showMessage(
                 this.flyMode ? 

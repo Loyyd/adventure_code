@@ -41,30 +41,23 @@ export class Inventory {
     addItem(itemType, quantity = 1) {
         // Check if this is a tool and we already have it
         if (this.toolTypes.has(itemType) && this.items.has(itemType)) {
-            console.log(`Cannot add ${itemType}: tool already in inventory (tools are unique)`);
             return false;
         }
         
         if (this.items.has(itemType)) {
             // For tools, don't add to existing quantity (they should only have 1)
             if (this.toolTypes.has(itemType)) {
-                console.log(`${itemType} is already in inventory`);
                 return false;
             }
             this.items.set(itemType, this.items.get(itemType) + quantity);
         } else {
             if (this.items.size >= this.maxSlots) {
-                console.log('Inventory full! Cannot add item:', itemType);
                 return false;
             }
             // For tools, always set quantity to 1, regardless of requested quantity
             const actualQuantity = this.toolTypes.has(itemType) ? 1 : quantity;
             this.items.set(itemType, actualQuantity);
         }
-        
-        const displayQuantity = this.toolTypes.has(itemType) ? 1 : quantity;
-        console.log(`Added ${displayQuantity} ${itemType}(s) to inventory`);
-        this.displayInventory();
         
         // Trigger UI update
         if (this.onInventoryChange) {
@@ -89,9 +82,6 @@ export class Inventory {
         } else {
             this.items.set(itemType, currentQuantity - quantity);
         }
-        
-        console.log(`Removed ${quantity} ${itemType}(s) from inventory`);
-        this.displayInventory();
         
         // Trigger UI update
         if (this.onInventoryChange) {
@@ -129,7 +119,6 @@ export class Inventory {
     generateDrops(assetType) {
         const drops = this.itemDrops.get(assetType);
         if (!drops) {
-            console.log(`No drops defined for asset type: ${assetType}`);
             return [];
         }
 
@@ -138,7 +127,6 @@ export class Inventory {
         for (const drop of drops) {
             // Skip tool drops if we already have that tool
             if (this.toolTypes.has(drop.item) && this.items.has(drop.item)) {
-                console.log(`Skipping ${drop.item} drop: tool already in inventory`);
                 continue;
             }
             
@@ -148,7 +136,6 @@ export class Inventory {
                     item: drop.item,
                     quantity: drop.quantity
                 });
-                console.log(`Generated drop: ${drop.quantity} ${drop.item}(s) (${(drop.probability * 100).toFixed(1)}% chance)`);
             }
         }
 
@@ -167,13 +154,10 @@ export class Inventory {
         }
 
         if (addedItems.length > 0) {
-            console.log(`Received: ${addedItems.join(', ')}`);
             // Show item notification if user interface is available
             if (window.gameInterface) {
                 window.gameInterface.showItemNotification(addedItems);
             }
-        } else {
-            console.log('No items received from this interaction');
         }
 
         return addedItems;

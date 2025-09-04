@@ -25,7 +25,6 @@ export class Controls {
                 if (this.onDebugToggle) {
                     this.onDebugToggle(this.debugMode);
                 }
-                console.log(`Debug mode: ${this.debugMode ? 'ON' : 'OFF'}`);
             }
             
             // Debug mode controls
@@ -39,19 +38,16 @@ export class Controls {
                     case 'KeyN': // N - Toggle day/night cycle
                         if (window.gameDayNight) {
                             window.gameDayNight.togglePause();
-                            console.log('Day/night cycle toggled');
                         }
                         break;
                     case 'KeyM': // M - Set to day
                         if (window.gameDayNight) {
                             window.gameDayNight.setTimeOfDay(0.5); // Noon
-                            console.log('Time set to day');
                         }
                         break;
                     case 'KeyB': // B - Set to night
                         if (window.gameDayNight) {
                             window.gameDayNight.setTimeOfDay(0.0); // Midnight
-                            console.log('Time set to night');
                         }
                         break;
                 }
@@ -139,7 +135,6 @@ export class Controls {
             player.inventory.addItem('stone', 10);
             player.inventory.addItem('axe', 1);
             player.inventory.addItem('pickaxe', 1);
-            console.log('Debug items added to inventory');
             if (window.gameInterface) {
                 window.gameInterface.showMessage('Debug items added to inventory!');
             }
@@ -164,12 +159,10 @@ export class Controls {
                     window.gameCamera.setTarget(player.position.x, player.position.z);
                 }
                 
-                console.log('Teleported to campfire at:', campfire.position);
                 if (window.gameInterface) {
                     window.gameInterface.showMessage('Teleported to campfire!');
                 }
             } else {
-                console.log('No campfire found');
                 if (window.gameInterface) {
                     window.gameInterface.showMessage('No campfire found in the world');
                 }
@@ -182,6 +175,7 @@ export class Controls {
     }
 
     listAllAssets() {
+        // This is a debug function that logs to console - keep the console logs here
         console.log('=== ASSET DEBUG INFO ===');
         const world = window.gameWorld;
         if (world && world.assetInstances) {

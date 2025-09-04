@@ -230,11 +230,7 @@ function checkHover() {
                 outlinePass.visibleEdgeColor.set(0xff0000); // Red outline for missing tool
                 outlinePass.hiddenEdgeColor.set(0xff0000);
                 
-                // Show helpful message about required tool
-                const requiredTool = getRequiredTool(assetType);
-                if (requiredTool) {
-                    console.log(`Cannot interact with ${assetType}: requires ${requiredTool}`);
-                }
+                // Note: Required tool feedback is now handled by UI notifications
             }
             
             outlinePass.selectedObjects = [assetParent];

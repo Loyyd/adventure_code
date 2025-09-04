@@ -337,10 +337,8 @@ export class InventoryUI {
                     node.receiveShadow = true;
                     hasValidMeshes = true;
                     
-                    // Debug: log mesh bounds
+                    // Compute bounding box for mesh
                     node.geometry.computeBoundingBox();
-                    const bbox = node.geometry.boundingBox;
-                    console.log(`Mesh ${node.name || 'unnamed'}: bounds`, bbox);
                     
                     // Optional: add wireframe for debugging
                     if (window.debugInventoryModel) {
@@ -352,8 +350,6 @@ export class InventoryUI {
                 }
             });
             
-            console.log(`Character model has ${hasValidMeshes ? 'valid' : 'no'} meshes`);
-
             // Scale and position the model exactly like Player.js
             model.scale.set(1, 1, 1);
             this.characterModel.add(model);
@@ -363,14 +359,12 @@ export class InventoryUI {
 
             // Setup animations exactly like Player.js using the cloned model
             this.characterMixer = new THREE.AnimationMixer(model);
-            console.log('Available animations for inventory:', gltf.animations.map(a => a.name));
             gltf.animations.forEach((clip) => {
                 this.characterAnimations[clip.name] = this.characterMixer.clipAction(clip);
             });
 
             // Start idle animation exactly like Player.js
             if (this.characterAnimations['Rig|Idle']) {
-                console.log('Playing initial Idle animation in inventory');
                 const idleAction = this.characterAnimations['Rig|Idle'];
                 idleAction.play();
             } else {

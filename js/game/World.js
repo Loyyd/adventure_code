@@ -12,11 +12,9 @@ export class World {
     }
 
     createWorld() {
-        console.log('Starting to create world');
         const loader = new THREE.GLTFLoader();
         loader.load('/glb/map/map.glb', 
             (gltf) => {
-            console.log('Map loaded successfully');
             this.mapModel = gltf.scene;
             this.scene.add(this.mapModel);
             
@@ -42,7 +40,7 @@ export class World {
             this.addAssetsToBiomes();
         },
         (progress) => {
-            console.log('Loading map progress:', (progress.loaded / progress.total * 100) + '%');
+            // Loading progress
         },
         (error) => {
             console.error('Error loading map:', error);
@@ -105,7 +103,6 @@ export class World {
     }
 
     async addAssetsToBiomes() {
-        console.log('Starting to add assets to biomes');
         // Clear existing instances
         for (const instances of this.assetInstances.values()) {
             instances.forEach(instance => this.scene.remove(instance));
@@ -114,12 +111,9 @@ export class World {
 
         // Add assets to all biomes
         for (const [biomeName, biomeData] of Object.entries(biomes)) {
-            console.log(`Processing biome: ${biomeName}`);
             const biomeMesh = this.biomeObjects.get(biomeName);
             if (biomeMesh && biomeData.assets) {
-                console.log(`Found valid biomeMesh for ${biomeName}`);
                 for (const [assetKey, assetConfig] of Object.entries(biomeData.assets)) {
-                    console.log(`Loading asset: ${assetKey}, type: ${assetConfig.type}, scale: ${assetConfig.scale}, color: ${assetConfig.color}, instances: ${assetConfig.instances}`);
                     const model = await this.loadModel(assetConfig.type);
                     if (model) {
                         const count = assetConfig.instances;
@@ -145,10 +139,6 @@ export class World {
 
 
     async addAssetToMesh(model, biomeMesh, count, assetConfig, biomeName) {
-        console.log(`Starting to add ${count} instances of ${assetConfig.type} to ${biomeName}`);
-        console.log('Asset config:', assetConfig);
-        console.log('Available biomeAssets:', Object.keys(biomeAssets));
-        
         const bbox = new THREE.Box3().setFromObject(biomeMesh);
         const placedPositions = new Set();
         const minDistance = 2;
@@ -228,7 +218,6 @@ export class World {
                                         child.material.opacity = 0.5;
                                         instance.userData.isActive = false;
                                         instance.userData.assetType = 'campfire';
-                                        console.log('🔥 Campfire created at position:', instance.position);
                                     }
                                 }
                             }
@@ -273,7 +262,6 @@ export class World {
         // Mark as active
         campfire.userData.isActive = true;
 
-        console.log('Campfire activated!');
         return true;
     }
 

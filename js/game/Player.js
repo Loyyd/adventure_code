@@ -16,8 +16,6 @@ export class Player {
         this.selectedTool = null; // Currently selected tool from hotbar
         
         // Don't add initial tools - let player find them
-        console.log('Player created with empty inventory:');
-        this.inventory.displayInventory();
         
         // Interaction timing system
         this.interactionStartTime = null;
@@ -49,14 +47,12 @@ export class Player {
 
             // Setup animations
             this.mixer = new THREE.AnimationMixer(model);
-            console.log('Available animations:', gltf.animations.map(a => a.name));
             gltf.animations.forEach((clip) => {
                 this.animations[clip.name] = this.mixer.clipAction(clip);
             });
 
             // Set default idle animation
             if (this.animations['Rig|Idle']) {
-                console.log('Playing initial Idle animation');
                 this.playAnimation('Rig|Idle');
             } else {
                 console.error('Idle animation not found!');
@@ -168,11 +164,7 @@ export class Player {
     }
 
     isItemSelectable(item) {
-        // Debug the item properties
-        console.log('Checking item:', item);
-        
         const assetType = this.getAssetType(item);
-        console.log('Asset type detected:', assetType);
         
         // Check if item is a valid interactable asset
         const validAssets = ['grass', 'bush', 'tree', 'rock', 'campfire'];
@@ -184,28 +176,22 @@ export class Player {
         switch(assetType) {
             case 'tree':
                 const hasAxe = this.selectedTool === 'axe';
-                console.log(`Tree interaction: selected tool = ${this.selectedTool}, has axe = ${hasAxe}`);
                 return hasAxe;
             case 'rock':
                 const hasPickaxe = this.selectedTool === 'pickaxe';
-                console.log(`Rock interaction: selected tool = ${this.selectedTool}, has pickaxe = ${hasPickaxe}`);
                 return hasPickaxe;
             case 'grass':
             case 'bush':
-                console.log(`${assetType} interaction: no tool required`);
                 return true; // No tool required
             case 'campfire':
-                console.log('Campfire interaction: always allowed');
                 return true; // Can always interact with campfire
             default:
-                console.log(`Unknown asset type: ${assetType}`);
                 return false;
         }
     }
 
     setSelectedTool(tool) {
         this.selectedTool = tool;
-        console.log(`Selected tool: ${tool || 'none'}`);
     }
 
     getSelectedTool() {
@@ -236,7 +222,6 @@ export class Player {
         if (this.isItemSelectable(item) && this.isItemInRange(item.position)) {
             // Check if we have the required tool
             if (!this.canInteractWithAsset(assetType)) {
-                console.log(`Cannot interact with ${assetType}: missing required tool`);
                 return false;
             }
 
@@ -255,7 +240,6 @@ export class Player {
     }
 
     startInteraction(item) {
-        console.log('Starting interaction with:', item);
         this.isInteractionInProgress = true;
         this.interactionStartTime = Date.now();
         this.currentInteractionTarget = item;
@@ -268,7 +252,6 @@ export class Player {
 
     stopInteraction() {
         if (this.isInteractionInProgress) {
-            console.log('Stopping interaction');
             this.isInteractionInProgress = false;
             this.interactionStartTime = null;
             this.currentInteractionTarget = null;
@@ -306,8 +289,6 @@ export class Player {
             return;
         }
 
-        console.log('Interaction completed!');
-        
         // Store the target before processing to prevent re-interaction
         const completedTarget = this.currentInteractionTarget;
         
@@ -316,7 +297,6 @@ export class Player {
         
         // Determine asset type for special handling
         const assetType = this.getAssetType(completedTarget);
-        console.log('Asset type:', assetType);
         
         if (assetType === 'campfire') {
             this.handleCampfireInteraction(completedTarget);
@@ -329,9 +309,7 @@ export class Player {
             
             // Show feedback to player
             if (receivedItems.length > 0) {
-                console.log(`🎁 You received: ${receivedItems.join(', ')}`);
-            } else {
-                console.log('No items found this time');
+                // Feedback is now handled by UI notification system
             }
         }
 
@@ -348,7 +326,6 @@ export class Player {
     handleCampfireInteraction(campfire) {
         // Check if campfire is already active
         if (campfire.userData && campfire.userData.isActive) {
-            console.log('Campfire is already lit!');
             if (window.gameInterface) {
                 window.gameInterface.showMessage('The campfire is already burning bright!');
             }
@@ -364,7 +341,6 @@ export class Player {
             this.showCampfireBuildDialog(campfire, requiredSticks);
         } else {
             const currentSticks = this.inventory.getItemCount('sticks');
-            console.log(`Not enough sticks! Need ${requiredSticks}, have ${currentSticks}`);
             if (window.gameInterface) {
                 window.gameInterface.showMessage(`You need ${requiredSticks} sticks to build the campfire. You have ${currentSticks}.`);
             }
@@ -387,13 +363,12 @@ export class Player {
             // Activate the campfire
             if (window.gameWorld) {
                 window.gameWorld.activateCampfire(campfire);
-                console.log('🔥 Campfire built successfully!');
                 if (window.gameInterface) {
                     window.gameInterface.showMessage('🔥 Campfire built! The warm light pushes back the darkness.');
                 }
             }
         } else {
-            console.log('Failed to remove sticks from inventory');
+            // Failed to remove sticks from inventory - should not happen
         }
     }
 
@@ -404,7 +379,6 @@ export class Player {
         asset.traverse((child) => {
             if (child.isMesh && child.material && child.material.name) {
                 const materialName = child.material.name.toLowerCase();
-                console.log('Checking material name:', materialName);
                 if (materialName.includes('grass')) {
                     assetType = 'grass';
                 } else if (materialName.includes('bush')) {
@@ -433,7 +407,6 @@ export class Player {
             });
         }
         
-        console.log('Detected asset type:', assetType);
         return assetType;
     }
 
@@ -448,7 +421,6 @@ export class Player {
                 const index = instances.indexOf(asset);
                 if (index !== -1) {
                     instances.splice(index, 1);
-                    console.log(`Removed ${type} asset from tracking`);
                     break;
                 }
             }

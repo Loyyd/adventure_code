@@ -11,7 +11,7 @@ import mimetypes
 
 PORT = 8000
 
-def find_available_port(start_port=8000, max_attempts=10):
+def find_available_port(start_port=8001, max_attempts=10):
     """Find an available port starting from start_port"""
     for port in range(start_port, start_port + max_attempts):
         try:
