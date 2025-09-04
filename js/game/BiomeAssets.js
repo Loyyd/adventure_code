@@ -54,5 +54,3 @@ export const biomeAssets = {
         }
     }
 };
-
-console.log('BiomeAssets loaded:', Object.keys(biomeAssets));

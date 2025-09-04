@@ -1,3 +1,5 @@
+import { biomeAssets } from './BiomeAssets.js';
+
 export const biomes = {
     'OPEN FIELDS': {
         color: 0x4a7c59,
