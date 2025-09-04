@@ -5,7 +5,6 @@ export class Interface {
     constructor(player) {
         this.player = player;
         this.biomeElement = document.getElementById('currentBiome');
-        this.positionElement = document.getElementById('position');
         this.inventoryUI = new InventoryUI(player);
         this.debugMode = false;
         this.createInteractionUI();
@@ -131,10 +130,6 @@ export class Interface {
         if (biomes[biomeName]) {
             this.biomeElement.style.color = `#${biomes[biomeName].color.toString(16).padStart(6, '0')}`;
         }
-    }
-
-    updatePosition(x, z) {
-        this.positionElement.textContent = `${x.toFixed(1)}, ${z.toFixed(1)}`;
     }
 
     toggleInventory() {
