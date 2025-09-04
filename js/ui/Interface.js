@@ -5,6 +5,13 @@ export class Interface {
     constructor(player) {
         this.player = player;
         this.biomeElement = document.getElementById('currentBiome');
+        
+        // Check if required DOM elements exist
+        if (!this.biomeElement) {
+            console.error('Could not find element with ID "currentBiome". Make sure the DOM is fully loaded before initializing Interface.');
+            throw new Error('Required DOM element "currentBiome" not found');
+        }
+        
         this.inventoryUI = new InventoryUI(player);
         this.debugMode = false;
         this.createInteractionUI();
@@ -126,6 +133,11 @@ export class Interface {
     }
 
     updateBiome(biomeName) {
+        if (!this.biomeElement) {
+            console.warn('biomeElement is null, cannot update biome display');
+            return;
+        }
+        
         this.biomeElement.textContent = biomeName;
         if (biomes[biomeName]) {
             this.biomeElement.style.color = `#${biomes[biomeName].color.toString(16).padStart(6, '0')}`;

@@ -267,5 +267,9 @@ function animate() {
     composer.render();
 }
 
-// Initialize the game
-init();
+// Initialize the game after DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
