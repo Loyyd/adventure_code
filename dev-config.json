@@ -1,0 +1,18 @@
+{
+  "autoRefresh": {
+    "enabled": true,
+    "pollInterval": 1000,
+    "watchedExtensions": [".js", ".html", ".css", ".py", ".glb"],
+    "excludedDirectories": ["__pycache__", ".git", "node_modules", ".vscode"],
+    "retrySettings": {
+      "maxRetries": 5,
+      "retryDelay": 1000,
+      "maxRetryDelay": 10000
+    }
+  },
+  "server": {
+    "port": 8000,
+    "cors": true,
+    "fileWatchInterval": 500
+  }
+}
