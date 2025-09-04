@@ -142,7 +142,6 @@ function handleMovement() {
         
         // Update UI
         updateBiome();
-        ui.updatePosition(newX, newZ);
     }
 }
 
