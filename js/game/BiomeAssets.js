@@ -31,7 +31,7 @@ export const biomeAssets = {
         }
     },
     rock: {
-        model: '/glb/assets/rocks/rock.glb',
+        model: '/glb/assets/rock/rock.glb',
     // Stones/rocks take ~7 seconds
     interactionTimeMs: 10000,
         scale: {
@@ -51,7 +51,7 @@ export const biomeAssets = {
         }
     },
     tree: {
-        model: '/glb/assets/trees/tree.glb',
+        model: '/glb/assets/tree/tree.glb',
     // Trees are slower to chop
     interactionTimeMs: 7000,
         scale: {
