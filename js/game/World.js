@@ -340,11 +340,12 @@ export class World {
 
     // NEW: Add hitbox for an asset instance
     addAssetHitbox(instance, assetConfig, assetType) {
-        // Look for custom hitbox meshes in the asset
+        // Look for custom hitbox meshes in the asset using the new naming convention
         const hitboxMeshes = [];
         instance.traverse((child) => {
             if (child.isMesh && child.name && child.name.toLowerCase().includes('hitbox')) {
                 hitboxMeshes.push(child);
+                console.log(`[World] Found hitbox mesh: ${child.name} for asset type: ${assetType}`);
             }
         });
 
@@ -364,10 +365,13 @@ export class World {
                 };
 
                 this.assetHitboxes.push(hitbox);
+                console.log(`[World] Added mesh hitbox for ${assetType} at position (${instance.position.x}, ${instance.position.z})`);
             }
             return;
         }
 
+        console.log(`[World] No custom hitbox found for ${assetType}, using fallback circular hitbox`);
+        
         // Fallback to simple circular hitbox if no custom hitbox found
         const assetData = biomeAssets[assetType];
         if (!assetData || !assetData.hitbox) {
@@ -391,6 +395,7 @@ export class World {
         };
 
         this.assetHitboxes.push(hitbox);
+        console.log(`[World] Added circular hitbox for ${assetType} with radius ${radius}`);
         return hitbox;
     }
 
@@ -508,11 +513,20 @@ export class World {
                 });
                 const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
                 
-                // Copy transform from the hitbox mesh
-                wireframe.position.copy(hitbox.mesh.position);
-                wireframe.rotation.copy(hitbox.mesh.rotation);
-                wireframe.scale.copy(hitbox.mesh.scale);
-                wireframe.updateMatrixWorld(true);
+                // Get the world matrix from the hitbox mesh to properly position the wireframe
+                hitbox.mesh.updateMatrixWorld(true);
+                wireframe.matrixWorld.copy(hitbox.mesh.matrixWorld);
+                wireframe.matrixWorldNeedsUpdate = false;
+                
+                // Extract position, rotation, and scale from world matrix
+                const position = new THREE.Vector3();
+                const quaternion = new THREE.Quaternion();
+                const scale = new THREE.Vector3();
+                wireframe.matrixWorld.decompose(position, quaternion, scale);
+                
+                wireframe.position.copy(position);
+                wireframe.quaternion.copy(quaternion);
+                wireframe.scale.copy(scale);
                 
                 this.scene.add(wireframe);
                 this.debugAssetHitboxHelpers.push(wireframe);
@@ -542,20 +556,41 @@ export class World {
         try {
             const gltf = await loader.loadAsync(modelPath);
             
-            // Find all top-level mesh groups that represent variations
+            // Find all top-level null objects that represent asset variations
+            // Each variation should contain both mesh and hitbox children
             const variations = [];
             gltf.scene.traverse((child) => {
                 // Only consider direct children of the scene as variations
                 if (child.parent === gltf.scene) {
-                    variations.push(child);
+                    // Check if this child has both mesh and hitbox children
+                    let hasMesh = false;
+                    let hasHitbox = false;
+                    
+                    child.traverse((grandchild) => {
+                        if (grandchild.isMesh) {
+                            if (grandchild.name.toLowerCase().includes('hitbox')) {
+                                hasHitbox = true;
+                            } else {
+                                hasMesh = true;
+                            }
+                        }
+                    });
+                    
+                    // Add as variation if it has both components or if it's a complete asset
+                    if ((hasMesh && hasHitbox) || child.children.length > 0) {
+                        variations.push(child);
+                    }
                 }
             });
 
-            // If no variations found, use the entire scene as one variation
+            // If no properly structured variations found, use the entire scene as one variation
             if (variations.length === 0) {
                 variations.push(gltf.scene);
             }
 
+            // Debug: Log what's in each variation (less verbose)
+            console.log(`[World] Loaded ${variations.length} variations for ${assetType}`);
+            
             // Store all variations
             this.loadedModels.set(assetType, variations);
             return variations;
@@ -659,6 +694,14 @@ export class World {
                         const variations = Array.isArray(model) ? model : [model];
                         const randomVariation = variations[Math.floor(Math.random() * variations.length)];
                         const instance = randomVariation.clone();
+                        
+                        // Debug: Log what's in this instance
+                        console.log(`[World] Creating ${assetType} instance from variation: ${randomVariation.name || 'unnamed'}`);
+                        instance.traverse((child) => {
+                            if (child.isMesh) {
+                                console.log(`[World] Found mesh in instance: ${child.name || 'unnamed mesh'}`);
+                            }
+                        });
                         
                         instance.position.set(point.x, point.y, point.z);
                         instance.rotation.y = Math.random() * Math.PI * 2;

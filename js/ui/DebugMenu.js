@@ -252,11 +252,18 @@ export class DebugMenu {
         // Hitbox visualization status
         if (world) {
             const hitboxesVisible = world.debugHitboxHelpers && world.debugHitboxHelpers.length > 0;
+            const assetHitboxesVisible = world.debugAssetHitboxHelpers && world.debugAssetHitboxHelpers.length > 0;
             debugText += `<strong>Hitbox Visualization:</strong><br>`;
             debugText += `World Hitboxes: ${hitboxesVisible ? '<span style="color: #66ff66;">ENABLED</span>' : '<span style="color: #ff6666;">DISABLED</span>'}<br>`;
             if (hitboxesVisible) {
                 debugText += `Showing ${world.debugHitboxHelpers.length} world hitbox(es)<br>`;
             }
+            if (assetHitboxesVisible) {
+                debugText += `Asset Hitboxes: <span style="color: #66ff66;">ENABLED</span> (${world.debugAssetHitboxHelpers.length} visible)<br>`;
+            } else {
+                debugText += `Asset Hitboxes: <span style="color: #ff6666;">DISABLED</span><br>`;
+            }
+            debugText += `H - Toggle hitbox visualization<br>`;
             debugText += `<br>`;
         }
         

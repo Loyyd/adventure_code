@@ -50,6 +50,9 @@ export class Controls {
                             window.gameDayNight.setTimeOfDay(0.0); // Midnight
                         }
                         break;
+                    case 'KeyH': // H - Toggle hitbox visualization
+                        this.toggleHitboxes();
+                        break;
                 }
             }
             
@@ -204,6 +207,27 @@ export class Controls {
                 if (window.gameInterface) {
                     window.gameInterface.showMessage('No campfire found in the world');
                 }
+            }
+        }
+    }
+
+    toggleHitboxes() {
+        if (window.gameWorld && window.gameWorld.setShowHitboxes) {
+            // Check if hitboxes are currently visible
+            const currentlyVisible = window.gameWorld.debugHitboxHelpers && window.gameWorld.debugHitboxHelpers.length > 0;
+            
+            // Toggle them
+            window.gameWorld.setShowHitboxes(!currentlyVisible);
+            
+            // Also toggle player hitbox
+            if (window.gamePlayer && window.gamePlayer.setShowHitbox) {
+                window.gamePlayer.setShowHitbox(!currentlyVisible);
+            }
+            
+            // Show message
+            if (window.gameInterface) {
+                const message = !currentlyVisible ? 'Hitboxes enabled' : 'Hitboxes disabled';
+                window.gameInterface.showMessage(message);
             }
         }
     }
