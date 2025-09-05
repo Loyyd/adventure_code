@@ -253,10 +253,19 @@ export class DebugMenu {
         if (world) {
             const hitboxesVisible = world.debugHitboxHelpers && world.debugHitboxHelpers.length > 0;
             debugText += `<strong>Hitbox Visualization:</strong><br>`;
-            debugText += `Status: ${hitboxesVisible ? '<span style="color: #66ff66;">ENABLED</span>' : '<span style="color: #ff6666;">DISABLED</span>'}<br>`;
+            debugText += `World Hitboxes: ${hitboxesVisible ? '<span style="color: #66ff66;">ENABLED</span>' : '<span style="color: #ff6666;">DISABLED</span>'}<br>`;
             if (hitboxesVisible) {
-                debugText += `Showing ${world.debugHitboxHelpers.length} hitbox(es)<br>`;
+                debugText += `Showing ${world.debugHitboxHelpers.length} world hitbox(es)<br>`;
             }
+            debugText += `<br>`;
+        }
+        
+        // Player hitbox visualization status
+        if (player) {
+            const playerHitboxVisible = player.debugHitboxHelper !== null;
+            debugText += `<strong>Player Hitbox:</strong><br>`;
+            debugText += `Status: ${playerHitboxVisible ? '<span style="color: #66ff66;">ENABLED</span>' : '<span style="color: #ff6666;">DISABLED</span>'}<br>`;
+            debugText += `Collision Radius: ${player.collisionRadius.toFixed(1)} units<br>`;
             debugText += `<br>`;
         }
         

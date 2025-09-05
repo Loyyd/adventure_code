@@ -15,6 +15,9 @@ export class Player {
         this.collisionRadius = 0.4; // Player collision radius against map hitboxes
         this.currentInteractionTarget = null; // Store the current object being interacted with
         this.inventory = new Inventory(); // Add inventory system
+        
+        // Debug visualization
+        this.debugHitboxHelper = null; // Visual helper for player hitbox
         this.selectedTool = null; // Currently selected tool from hotbar
         // Interaction timing system
         this.interactionStartTime = null;
@@ -162,6 +165,9 @@ export class Player {
 
         // Handle interaction timing
         this.updateInteraction();
+
+        // Update hitbox helper position
+        this.updateHitboxHelper();
 
         // Smooth rotation interpolation
         if (this.mesh.rotation.y !== this.targetRotation) {
@@ -465,5 +471,40 @@ export class Player {
     // Public method to check tool requirements (used by main.js for outline colors)
     canInteractWithAssetPublic(assetType) {
         return this.canInteractWithAsset(assetType);
+    }
+
+    // Debug hitbox visualization
+    setShowHitbox(show) {
+        // Remove existing helper
+        if (this.debugHitboxHelper) {
+            this.scene.remove(this.debugHitboxHelper);
+            this.debugHitboxHelper = null;
+        }
+
+        if (!show) return;
+
+        // Create a circle geometry to represent the player's collision radius
+        const geometry = new THREE.RingGeometry(this.collisionRadius - 0.05, this.collisionRadius + 0.05, 32);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+
+        this.debugHitboxHelper = new THREE.Mesh(geometry, material);
+        this.debugHitboxHelper.rotation.x = -Math.PI / 2; // Rotate to lie flat on ground
+        this.debugHitboxHelper.position.copy(this.position);
+        this.debugHitboxHelper.position.y = 0.01; // Slightly above ground to avoid z-fighting
+
+        this.scene.add(this.debugHitboxHelper);
+    }
+
+    // Update hitbox helper position when player moves
+    updateHitboxHelper() {
+        if (this.debugHitboxHelper) {
+            this.debugHitboxHelper.position.x = this.position.x;
+            this.debugHitboxHelper.position.z = this.position.z;
+        }
     }
 }

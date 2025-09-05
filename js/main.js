@@ -54,6 +54,9 @@ function init() {
         if (world && world.setShowHitboxes) {
             world.setShowHitboxes(enabled);
         }
+        if (player && player.setShowHitbox) {
+            player.setShowHitbox(enabled);
+        }
     };
     
     // Store controls reference globally for UI access
