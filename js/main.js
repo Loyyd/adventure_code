@@ -16,15 +16,6 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let didInitialUnstuck = false;
 
-function getRequiredTool(assetType) {
-    switch(assetType) {
-        case 'tree': return 'axe';
-        case 'rock': return 'pickaxe';
-        case 'campfire': return null; // No tool required for campfire
-        default: return null;
-    }
-}
-
 function init() {
     setupScene();
     
@@ -242,7 +233,7 @@ function checkHover() {
             
             // Check if player can interact with this asset (has required tool)
             const canInteract = player.canInteractWithAssetPublic(assetType);
-            
+
             // Set outline color based on whether player can interact
             if (canInteract) {
                 outlinePass.visibleEdgeColor.set(0xffff00); // Yellow outline for valid interaction
@@ -250,7 +241,7 @@ function checkHover() {
             } else {
                 outlinePass.visibleEdgeColor.set(0xff0000); // Red outline for missing tool
                 outlinePass.hiddenEdgeColor.set(0xff0000);
-                
+
                 // Note: Required tool feedback is now handled by UI notifications
             }
             
@@ -269,6 +260,7 @@ function checkHover() {
 function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
+    
     // On first frames, if the player spawns inside a hitbox, snap to nearest free
     if (!didInitialUnstuck && world && world.isPositionBlocked && player) {
         if (world.isPositionBlocked(player.position.x, player.position.z, player.collisionRadius)) {
@@ -283,6 +275,7 @@ function animate() {
         }
         didInitialUnstuck = true;
     }
+    
     handleMovement();
     player.update(deltaTime);
     world.updateCampfires(); // Update campfire particles and lighting

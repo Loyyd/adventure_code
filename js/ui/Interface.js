@@ -714,8 +714,6 @@ export class Interface {
         document.body.appendChild(overlay);
     }
 
-
-
     toggleDebugMode(enabled) {
         this.debugMenu.toggleDebugMode(enabled);
     }

@@ -25,7 +25,7 @@ def find_available_port(start_port=8002, max_attempts=10):
 class DevHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
+
     def end_headers(self):
         # CORS headers
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -43,11 +43,11 @@ class DevHandler(http.server.SimpleHTTPRequestHandler):
         """Enhanced MIME type detection"""
         # Convert path to string if it's a Path object
         path_str = str(path)
-        
+
         # Handle .glb files specifically
         if path_str.endswith('.glb'):
             return 'model/gltf-binary'
-        
+
         # Call parent method and return just the mimetype
         mimetype, encoding = mimetypes.guess_type(path_str)
         return mimetype or 'application/octet-stream'

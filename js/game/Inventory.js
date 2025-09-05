@@ -15,7 +15,6 @@ export class Inventory {
     setupItemDrops() {
         // Define what each asset can drop with their probabilities
         this.itemDrops.set('grass', [
-            //{ item: 'axe', probability: 0.30, quantity: 1 },
             { item: 'seeds', probability: 0.50, quantity: 1 },
             { item: 'sticks', probability: 0.30, quantity: 1 },
             { item: 'seeds', probability: 0.50, quantity: 1 }
@@ -30,8 +29,7 @@ export class Inventory {
         
         this.itemDrops.set('tree', [
             { item: 'wood', probability: 0.80, quantity: 3 },
-            { item: 'sticks', probability: 0.60, quantity: 2 },
-            //{ item: 'pickaxe', probability: 0.2, quantity: 1 }
+            { item: 'sticks', probability: 0.60, quantity: 2 }
         ]);
         
         this.itemDrops.set('rock', [

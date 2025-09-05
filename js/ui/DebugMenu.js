@@ -60,7 +60,6 @@ export class DebugMenu {
         axeButton.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log("Axe button clicked!");
             this.directAddItem('axe', 1);
         };
         this.addButtonHoverEffects(axeButton);
@@ -72,7 +71,6 @@ export class DebugMenu {
         pickaxeButton.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log("Pickaxe button clicked!");
             this.directAddItem('pickaxe', 1);
         };
         this.addButtonHoverEffects(pickaxeButton);
@@ -84,7 +82,6 @@ export class DebugMenu {
         sticksButton.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log("Sticks button clicked!");
             this.directAddItem('sticks', 5);
         };
         this.addButtonHoverEffects(sticksButton);
@@ -171,8 +168,6 @@ export class DebugMenu {
     
     // Direct inventory manipulation with more robust error checking
     directAddItem(itemType, quantity) {
-        console.log(`Debug Button: directAddItem called with ${itemType}, ${quantity}`);
-        
         try {
             // Make sure global player exists
             if (!window.gamePlayer) {
@@ -180,23 +175,18 @@ export class DebugMenu {
                 alert("Error: gamePlayer not found");
                 return;
             }
-            
+
             // Make sure inventory exists
             if (!window.gamePlayer.inventory) {
                 console.error("Debug: window.gamePlayer.inventory is not defined");
                 alert("Error: Player inventory not found");
                 return;
             }
-            
-            console.log("Debug: Player inventory found:", window.gamePlayer.inventory);
-            
+
             // Try to add item directly to inventory
             const result = window.gamePlayer.inventory.addItem(itemType, quantity);
-            console.log(`Debug: addItem result: ${result}`);
-            
+
             if (result) {
-                console.log(`Debug: Added ${quantity} ${itemType}(s) to inventory`);
-                
                 // Show visual confirmation
                 if (window.gameInterface) {
                     window.gameInterface.showMessage(`Added ${quantity} ${itemType}(s) to inventory`, 1500);
@@ -205,22 +195,16 @@ export class DebugMenu {
                     alert(`Added ${quantity} ${itemType}(s) to inventory`);
                 }
             } else {
-                // Print debug info for inventory state
-                console.log("Debug: Current inventory:", window.gamePlayer.inventory.items);
-                console.log("Debug: Tool types:", window.gamePlayer.inventory.toolTypes);
-                
                 // Handle tools that can only be added once
                 if (window.gamePlayer.inventory.toolTypes && 
                     window.gamePlayer.inventory.toolTypes.has(itemType) && 
                     window.gamePlayer.inventory.items.has(itemType)) {
-                    console.log(`Debug: Cannot add ${itemType} because you already have one`);
                     if (window.gameInterface) {
                         window.gameInterface.showMessage(`You already have a ${itemType}`, 1500);
                     } else {
                         alert(`You already have a ${itemType}`);
                     }
                 } else {
-                    console.log(`Debug: Failed to add ${itemType} to inventory (unknown reason)`);
                     if (window.gameInterface) {
                         window.gameInterface.showMessage(`Failed to add ${itemType} to inventory`, 1500);
                     } else {
@@ -235,19 +219,16 @@ export class DebugMenu {
     }
 
     toggleDebugMode(enabled) {
-        console.log(`Debug: toggleDebugMode called with enabled=${enabled}`);
         this.debugMode = enabled;
         this.debugOverlay.style.display = enabled ? 'block' : 'none';
-        
+
         if (enabled) {
-            console.log('Debug: Debug mode enabled, updating info');
             this.updateDebugInfo();
-            
+
             // Make sure item buttons container is visible and properly positioned
             if (this.itemButtonsContainer) {
                 this.itemButtonsContainer.style.display = 'flex';
-                console.log('Debug: Item buttons should be visible');
-                
+
                 // Force redraw
                 setTimeout(() => {
                     this.debugOverlay.style.display = 'none';
@@ -256,10 +237,6 @@ export class DebugMenu {
                     }, 10);
                 }, 0);
             }
-            
-            console.log('Debug: Debug overlay should now be visible');
-        } else {
-            console.log('Debug: Debug mode disabled');
         }
     }
 

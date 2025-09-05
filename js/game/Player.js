@@ -12,17 +12,14 @@ export class Player {
         this.targetRotation = 0;
         this.rotationSpeed = 0.1; // Adjust this value to control rotation speed (0.1 = smooth, 1.0 = instant)
         this.interactionRange = 1.8; // Maximum distance for interactions in world units
-    this.collisionRadius = 0.4; // Player collision radius against map hitboxes (tweak as needed)
+        this.collisionRadius = 0.4; // Player collision radius against map hitboxes
         this.currentInteractionTarget = null; // Store the current object being interacted with
         this.inventory = new Inventory(); // Add inventory system
         this.selectedTool = null; // Currently selected tool from hotbar
-        
-        // Don't add initial tools - let player find them
-        
         // Interaction timing system
         this.interactionStartTime = null;
-    // Interaction duration: base per asset (see biomeAssets), with debug scaling
-    this.debugDurationScale = 0.2; // e.g., 20% of normal in debug mode
+        // Interaction duration: base per asset (see biomeAssets), with debug scaling
+        this.debugDurationScale = 0.2; // e.g., 20% of normal in debug mode
         this.isInteractionInProgress = false;
         this.interactionProgressCallback = null; // Callback for UI updates
         this.justCompletedInteraction = false; // Flag to prevent immediate re-interaction

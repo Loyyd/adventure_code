@@ -118,18 +118,18 @@ export class Controls {
         });
 
         // Also add click handler to completely block game clicks on UI
-            document.addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON' || 
-                    e.target.closest('button') ||
-                    e.target.closest('#debugOverlay') ||
-                    e.target.closest('#externalDebugButtons') ||
-                    e.target.closest('#inventoryModal')) {
-                    // Silently block the event propagation
-                    // Important: this listener runs in the bubbling phase so button onclicks still fire
-                    e.stopPropagation();
-                    return;
-                }
-            }, false); // Use bubbling phase to avoid preventing target handlers
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' || 
+                e.target.closest('button') ||
+                e.target.closest('#debugOverlay') ||
+                e.target.closest('#externalDebugButtons') ||
+                e.target.closest('#inventoryModal')) {
+                // Silently block the event propagation
+                // Important: this listener runs in the bubbling phase so button onclicks still fire
+                e.stopPropagation();
+                return;
+            }
+        }, false); // Use bubbling phase to avoid preventing target handlers
     }
 
     getMovement() {

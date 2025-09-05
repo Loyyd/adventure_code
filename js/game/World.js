@@ -8,9 +8,9 @@ export class World {
         this.raycaster = new THREE.Raycaster();
         this.assetInstances = new Map(); // Map to store instances by type
         this.loadedModels = new Map(); // Cache for loaded models
-    this.collisionBoxes = []; // Array of THREE.Box3 for map hitboxes (debug/optional)
-    this.hitboxMeshes = []; // Meshes used for precise raycast collision
-    this.debugHitboxHelpers = []; // Visual helpers for hitboxes (debug)
+        this.collisionBoxes = []; // Array of THREE.Box3 for map hitboxes (debug/optional)
+        this.hitboxMeshes = []; // Meshes used for precise raycast collision
+        this.debugHitboxHelpers = []; // Visual helpers for hitboxes (debug)
         
         // Clear model cache on development refresh
         if (this.isDevelopment()) {
@@ -44,8 +44,8 @@ export class World {
         
         loader.load(mapPath, 
             (gltf) => {
-            this.mapModel = gltf.scene;
-            this.scene.add(this.mapModel);
+                this.mapModel = gltf.scene;
+                this.scene.add(this.mapModel);
             
             // Store references to biome objects for later use and set up shadows
             this.mapModel.traverse((child) => {
@@ -54,7 +54,10 @@ export class World {
                 let inHitboxSubtree = false;
                 while (node) {
                     const n = (node.name || '').toLowerCase();
-                    if (n.includes('hitbox')) { inHitboxSubtree = true; break; }
+                    if (n.includes('hitbox')) { 
+                        inHitboxSubtree = true; 
+                        break; 
+                    }
                     node = node.parent;
                 }
 
@@ -69,9 +72,7 @@ export class World {
                         this.collisionBoxes.push(meshBox);
                     }
                     return; // Skip biome/shadow/material setup for hitbox content
-                }
-
-                if (child.isMesh) {
+                }                if (child.isMesh) {
                     const biomeName = child.name.toUpperCase().replace(/_/g, ' ');
                     this.biomeObjects.set(biomeName, child);
                     
@@ -107,7 +108,7 @@ export class World {
             new THREE.Vector3(0, -1, 0)
         );
 
-    // Raycast against the whole map; hidden hitboxes won't be intersected
+        // Raycast against the whole map; hidden hitboxes won't be intersected
         const intersects = this.raycaster.intersectObjects(this.mapModel.children, true);
         
         if (intersects.length > 0) {
