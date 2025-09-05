@@ -175,6 +175,25 @@ export class World {
         return { x: oldX, z: oldZ };
     }
 
+    // Check if a position is blocked by any hitbox
+    isPositionBlocked(x, z, radius = 0.4) {
+        // Create a small circle around the position and check if any part intersects hitboxes
+        const checkPoints = [
+            { x: x, z: z },                    // Center
+            { x: x + radius, z: z },           // Right
+            { x: x - radius, z: z },           // Left
+            { x: x, z: z + radius },           // Forward
+            { x: x, z: z - radius },           // Back
+        ];
+        
+        for (const point of checkPoints) {
+            if (this.segmentIntersectsHitbox(point.x, point.z, point.x, point.z)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Find nearest free position by sampling concentric rings around (x,z)
     findNearestFreePosition(x, z, radius = 0.4, maxRadius = 20, ringStep = 0.5, samplesPerRing = 24) {
         // If current is free, return it
@@ -204,12 +223,57 @@ export class World {
             this.debugHitboxHelpers = [];
         }
         if (!show) return;
+        
         // Add helpers for each stored Box3
         for (const box of this.collisionBoxes) {
             const helper = new THREE.Box3Helper(box, 0xff0000);
             this.scene.add(helper);
             this.debugHitboxHelpers.push(helper);
         }
+        
+        // Also add wireframe helpers for hitbox meshes to show more detailed collision geometry
+        for (const hitboxMesh of this.hitboxMeshes) {
+            // Create a wireframe version of the actual hitbox mesh
+            const wireframeGeometry = hitboxMesh.geometry.clone();
+            const wireframeMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff0000,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.8
+            });
+            const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+            
+            // Copy the transform from the original mesh
+            wireframe.position.copy(hitboxMesh.position);
+            wireframe.rotation.copy(hitboxMesh.rotation);
+            wireframe.scale.copy(hitboxMesh.scale);
+            
+            // Apply the same parent transformations
+            let parent = hitboxMesh.parent;
+            const transforms = [];
+            while (parent && parent !== this.scene) {
+                transforms.unshift({
+                    position: parent.position.clone(),
+                    rotation: parent.rotation.clone(),
+                    scale: parent.scale.clone()
+                });
+                parent = parent.parent;
+            }
+            
+            // Apply accumulated transforms
+            for (const transform of transforms) {
+                wireframe.position.add(transform.position);
+                wireframe.rotation.x += transform.rotation.x;
+                wireframe.rotation.y += transform.rotation.y;
+                wireframe.rotation.z += transform.rotation.z;
+                wireframe.scale.multiply(transform.scale);
+            }
+            
+            this.scene.add(wireframe);
+            this.debugHitboxHelpers.push(wireframe);
+        }
+        
+        console.log(`[Debug] ${show ? 'Showing' : 'Hiding'} ${this.debugHitboxHelpers.length} hitbox visualizations`);
     }
 
     async loadModel(assetType) {

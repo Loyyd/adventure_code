@@ -245,8 +245,20 @@ export class DebugMenu {
         
         const player = window.gamePlayer;
         const dayNight = window.gameDayNight;
+        const world = window.gameWorld;
         
         let debugText = '<strong>🐛 DEBUG CONTROLS</strong><br><br>';
+        
+        // Hitbox visualization status
+        if (world) {
+            const hitboxesVisible = world.debugHitboxHelpers && world.debugHitboxHelpers.length > 0;
+            debugText += `<strong>Hitbox Visualization:</strong><br>`;
+            debugText += `Status: ${hitboxesVisible ? '<span style="color: #66ff66;">ENABLED</span>' : '<span style="color: #ff6666;">DISABLED</span>'}<br>`;
+            if (hitboxesVisible) {
+                debugText += `Showing ${world.debugHitboxHelpers.length} hitbox(es)<br>`;
+            }
+            debugText += `<br>`;
+        }
         
         // Time controls section
         debugText += `<strong>Time Controls:</strong><br>`;
