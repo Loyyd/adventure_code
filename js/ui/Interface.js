@@ -149,7 +149,7 @@ export class Interface {
         this.inventoryUI.toggleInventory();
     }
 
-    updateInteractionProgress(elapsed, duration, targetPosition = null) {
+    updateInteractionProgress(elapsed, duration, targetPosition = null, assetType = null) {
         if (elapsed === null || duration === null) {
             // Hide progress bar
             this.interactionContainer.style.display = 'none';
@@ -160,7 +160,8 @@ export class Interface {
             this.progressBar.style.width = `${progress}%`;
             
             const remainingTime = Math.max(0, (duration - elapsed) / 1000);
-            this.interactionText.textContent = `Interacting... ${remainingTime.toFixed(1)}s`;
+            const label = assetType ? assetType.charAt(0).toUpperCase() + assetType.slice(1) : 'Object';
+            this.interactionText.textContent = `Interacting with ${label}... ${remainingTime.toFixed(1)}s`;
             
             // Position the progress bar near the mouse cursor if we have mouse position
             if (window.gameControls && window.gameControls.getLastMousePosition) {
@@ -268,9 +269,9 @@ export class Interface {
         this.biomeTransitionContainer.id = 'biomeTransitionContainer';
         this.biomeTransitionContainer.style.cssText = `
             position: fixed;
-            top: 50%;
+            top: 18%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             z-index: 2500;
             pointer-events: none;
             display: none;
@@ -589,7 +590,17 @@ export class Interface {
             line-height: 1.5;
             color: #ecf0f1;
         `;
-        message.textContent = `Do you want to build a campfire? This will cost ${requiredSticks} sticks and provide warmth and light.`;
+        const currentSticks = window.gamePlayer?.inventory?.getItemCount('sticks') || 0;
+        message.textContent = `Cost: ${requiredSticks} sticks • You have: ${currentSticks}`;
+        
+        const hint = document.createElement('div');
+        hint.style.cssText = `
+            font-size: 12px;
+            color: #bdc3c7;
+            margin-top: -18px;
+            margin-bottom: 18px;
+        `;
+        hint.textContent = 'Gather sticks from grass, bushes, and trees.';
         
         const buttonContainer = document.createElement('div');
         buttonContainer.style.cssText = `
@@ -609,7 +620,7 @@ export class Interface {
             cursor: pointer;
             transition: background 0.3s ease;
         `;
-        yesButton.textContent = `Yes (${requiredSticks} sticks)`;
+        yesButton.textContent = `Build (${requiredSticks})`;
         
         const noButton = document.createElement('button');
         noButton.style.cssText = `
@@ -639,30 +650,64 @@ export class Interface {
             noButton.style.background = '#e74c3c';
         });
         
+        // Disable/enable build button based on inventory
+        const updateButtonState = () => {
+            const sticks = window.gamePlayer?.inventory?.getItemCount('sticks') || 0;
+            const canBuild = sticks >= requiredSticks;
+            yesButton.disabled = !canBuild;
+            yesButton.style.opacity = canBuild ? '1' : '0.6';
+            yesButton.style.cursor = canBuild ? 'pointer' : 'not-allowed';
+            message.textContent = `Cost: ${requiredSticks} sticks • You have: ${sticks}`;
+        };
+        updateButtonState();
+        
+        // Listen for inventory changes to live-update
+        const originalOnInventoryChange = window.gamePlayer?.inventory?.onInventoryChange;
+        if (window.gamePlayer?.inventory) {
+            window.gamePlayer.inventory.onInventoryChange = () => {
+                // Call existing callback if any
+                if (originalOnInventoryChange) originalOnInventoryChange();
+                updateButtonState();
+            };
+        }
+
         // Button events
         yesButton.addEventListener('click', () => {
-            window.gamePlayer.buildCampfire(campfire, requiredSticks);
-            document.body.removeChild(overlay);
+            if (!yesButton.disabled) {
+                window.gamePlayer.buildCampfire(campfire, requiredSticks);
+                cleanup();
+            }
         });
         
         noButton.addEventListener('click', () => {
-            document.body.removeChild(overlay);
+            cleanup();
         });
         
         // ESC key to close
         const handleKeyPress = (event) => {
             if (event.key === 'Escape') {
-                document.body.removeChild(overlay);
-                document.removeEventListener('keydown', handleKeyPress);
+                cleanup();
             }
         };
         document.addEventListener('keydown', handleKeyPress);
+        
+        const cleanup = () => {
+            // Restore original inventory callback
+            if (window.gamePlayer?.inventory) {
+                window.gamePlayer.inventory.onInventoryChange = originalOnInventoryChange || null;
+            }
+            if (overlay.parentNode) {
+                document.body.removeChild(overlay);
+            }
+            document.removeEventListener('keydown', handleKeyPress);
+        };
         
         buttonContainer.appendChild(yesButton);
         buttonContainer.appendChild(noButton);
         
         dialog.appendChild(title);
         dialog.appendChild(message);
+        dialog.appendChild(hint);
         dialog.appendChild(buttonContainer);
         
         overlay.appendChild(dialog);

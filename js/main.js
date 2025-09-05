@@ -42,8 +42,8 @@ function init() {
     window.gameCamera = cameraController;
     
     // Set up UI callbacks
-    player.setInteractionProgressCallback((elapsed, duration, targetPosition) => {
-        ui.updateInteractionProgress(elapsed, duration, targetPosition);
+    player.setInteractionProgressCallback((elapsed, duration, targetPosition, assetType) => {
+        ui.updateInteractionProgress(elapsed, duration, targetPosition, assetType);
     });
     
     // Set up inventory toggle callback
@@ -221,10 +221,17 @@ function checkHover() {
         
         // Only highlight if the object is within interaction range and is a valid asset instance
         if (isAssetInstance && player.isItemInRange(assetParent.position) && hoveredObject !== assetParent) {
+            // Skip active campfires entirely (non-interactable after built)
+            const assetType = player.getAssetTypePublic(assetParent);
+            if (assetType === 'campfire' && assetParent.userData && assetParent.userData.isActive) {
+                hoveredObject = null;
+                outlinePass.selectedObjects = [];
+                return;
+            }
+
             hoveredObject = assetParent;
             
             // Check if player can interact with this asset (has required tool)
-            const assetType = player.getAssetTypePublic(assetParent);
             const canInteract = player.canInteractWithAssetPublic(assetType);
             
             // Set outline color based on whether player can interact

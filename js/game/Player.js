@@ -1,4 +1,5 @@
 import { Inventory } from './Inventory.js';
+import { biomeAssets } from './BiomeAssets.js';
 
 export class Player {
     constructor(scene) {
@@ -19,9 +20,8 @@ export class Player {
         
         // Interaction timing system
         this.interactionStartTime = null;
-        // Interaction duration will be determined dynamically based on debug mode
-        this.baseInteractionDuration = 3000; // 3 seconds base duration
-        this.debugInteractionDuration = 500; // 0.5 seconds in debug mode
+    // Interaction duration: base per asset (see biomeAssets), with debug scaling
+    this.debugDurationScale = 0.2; // e.g., 20% of normal in debug mode
         this.isInteractionInProgress = false;
         this.interactionProgressCallback = null; // Callback for UI updates
         this.justCompletedInteraction = false; // Flag to prevent immediate re-interaction
@@ -37,10 +37,14 @@ export class Player {
                location.hostname === '0.0.0.0';
     }
 
-    getInteractionDuration() {
-        // Check if debug mode is active via the global controls (updated)
+    getInteractionDurationForAsset(assetType) {
+        // Default fallback if type unknown
+        let duration = 3000;
+        if (assetType && biomeAssets[assetType] && biomeAssets[assetType].interactionTimeMs) {
+            duration = biomeAssets[assetType].interactionTimeMs;
+        }
         const isDebugMode = window.gameControls && window.gameControls.isDebugMode();
-        return isDebugMode ? this.debugInteractionDuration : this.baseInteractionDuration;
+        return isDebugMode ? Math.max(100, Math.floor(duration * this.debugDurationScale)) : duration;
     }
 
     async loadCharacterModel() {
@@ -191,7 +195,14 @@ export class Player {
         
         // Check if item is a valid interactable asset
         const validAssets = ['grass', 'bush', 'tree', 'rock', 'campfire'];
-        return validAssets.includes(assetType);
+        if (!validAssets.includes(assetType)) return false;
+
+        // Special case: once a campfire is built (active), it should no longer be interactable
+        if (assetType === 'campfire' && item && item.userData && item.userData.isActive) {
+            return false;
+        }
+
+        return true;
     }
 
     canInteractWithAsset(assetType) {
@@ -269,7 +280,9 @@ export class Player {
         
         // Notify UI about interaction start
         if (this.interactionProgressCallback) {
-            this.interactionProgressCallback(0, this.getInteractionDuration(), item.position);
+            const assetType = this.getAssetType(item);
+            const duration = this.getInteractionDurationForAsset(assetType);
+            this.interactionProgressCallback(0, duration, item.position, assetType);
         }
     }
 
@@ -292,13 +305,14 @@ export class Player {
         }
 
         const elapsed = Date.now() - this.interactionStartTime;
-        const interactionDuration = this.getInteractionDuration();
+        const assetType = this.getAssetType(this.currentInteractionTarget);
+        const interactionDuration = this.getInteractionDurationForAsset(assetType);
         const progress = Math.min(elapsed / interactionDuration, 1.0);
         
         // Update UI progress
         if (this.interactionProgressCallback) {
             const targetPos = this.currentInteractionTarget ? this.currentInteractionTarget.position : null;
-            this.interactionProgressCallback(elapsed, interactionDuration, targetPos);
+            this.interactionProgressCallback(elapsed, interactionDuration, targetPos, assetType);
         }
 
         // Check if interaction is complete
@@ -350,25 +364,13 @@ export class Player {
     handleCampfireInteraction(campfire) {
         // Check if campfire is already active
         if (campfire.userData && campfire.userData.isActive) {
-            if (window.gameInterface) {
-                window.gameInterface.showMessage('The campfire is already burning bright!');
-            }
+            // Do not allow any further interaction with an active campfire
             return;
         }
 
-        // Check if player has enough sticks
+        // Always show the campfire dialog with cost and current sticks; button will enable only if enough
         const requiredSticks = 20;
-        const hasEnoughSticks = this.inventory.hasItem('sticks', requiredSticks);
-
-        if (hasEnoughSticks) {
-            // Show confirmation dialog
-            this.showCampfireBuildDialog(campfire, requiredSticks);
-        } else {
-            const currentSticks = this.inventory.getItemCount('sticks');
-            if (window.gameInterface) {
-                window.gameInterface.showMessage(`You need ${requiredSticks} sticks to build the campfire. You have ${currentSticks}.`);
-            }
-        }
+        this.showCampfireBuildDialog(campfire, requiredSticks);
     }
 
     showCampfireBuildDialog(campfire, requiredSticks) {

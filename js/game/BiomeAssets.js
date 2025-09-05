@@ -1,6 +1,8 @@
 export const biomeAssets = {
     grass: {
         model: '/glb/assets/grass/grass.glb',
+    // Time to interact (milliseconds)
+    interactionTimeMs: 1500,
         scale: {
             default: { min: 0.8, max: 1.2 }
         },
@@ -11,6 +13,8 @@ export const biomeAssets = {
     },
     bush: {
         model: '/glb/assets/bush/bush.glb',
+    // Bushes take ~3 seconds
+    interactionTimeMs: 3000,
         scale: {
             default: { min: 0.6, max: 1.0 }
         },
@@ -21,6 +25,8 @@ export const biomeAssets = {
     },
     rock: {
         model: '/glb/assets/rocks/rock.glb',
+    // Stones/rocks take ~7 seconds
+    interactionTimeMs: 10000,
         scale: {
             small: { min: 0.5, max: 0.8 },
             medium: { min: 0.8, max: 1.2 },
@@ -33,6 +39,8 @@ export const biomeAssets = {
     },
     tree: {
         model: '/glb/assets/trees/tree.glb',
+    // Trees are slower to chop
+    interactionTimeMs: 7000,
         scale: {
             small: { min: 0.8, max: 1.2 },
             medium: { min: 1.2, max: 1.8 },
@@ -45,6 +53,8 @@ export const biomeAssets = {
     },
     campfire: {
         model: '/glb/assets/campfire/campfire.glb',
+    // Brief interaction before build dialog
+    interactionTimeMs: 1000,
         scale: {
             default: { min: 1.0, max: 1.0 }
         },
