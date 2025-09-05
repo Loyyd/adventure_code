@@ -14,6 +14,7 @@ let outlinePass, composer;
 let hoveredObject = null;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+let didInitialUnstuck = false;
 
 function getRequiredTool(assetType) {
     switch(assetType) {
@@ -59,6 +60,9 @@ function init() {
     // Set up debug mode callback
     controls.onDebugToggle = (enabled) => {
         ui.toggleDebugMode(enabled);
+        if (world && world.setShowHitboxes) {
+            world.setShowHitboxes(enabled);
+        }
     };
     
     // Store controls reference globally for UI access
@@ -130,15 +134,20 @@ function setupResizeHandler() {
 
 function handleMovement() {
     const movement = controls.getMovement();
-    const newX = player.position.x + movement.x;
-    const newZ = player.position.z + movement.z;
+    const intendedX = player.position.x + movement.x;
+    const intendedZ = player.position.z + movement.z;
+    // Resolve collisions against world hitboxes before moving
+    const resolved = world && world.resolveCollision && world.collisionBoxes
+        ? world.resolveCollision(player.position.x, player.position.z, intendedX, intendedZ, player.collisionRadius)
+        : { x: intendedX, z: intendedZ };
     
     // Pass the currently hovered object as the interaction target when interacting
-    player.move(newX, newZ, movement.moved, controls.isInteracting, hoveredObject);
+    const actuallyMoved = (resolved.x !== player.position.x) || (resolved.z !== player.position.z);
+    player.move(resolved.x, resolved.z, movement.moved && actuallyMoved, controls.isInteracting, hoveredObject);
     
     if (movement.moved) {
         // Update camera target to follow player
-        cameraController.setTarget(newX, newZ);
+        cameraController.setTarget(resolved.x, resolved.z);
         
         // Update UI
         updateBiome();
@@ -260,6 +269,20 @@ function checkHover() {
 function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
+    // On first frames, if the player spawns inside a hitbox, snap to nearest free
+    if (!didInitialUnstuck && world && world.isPositionBlocked && player) {
+        if (world.isPositionBlocked(player.position.x, player.position.z, player.collisionRadius)) {
+            const free = world.findNearestFreePosition(player.position.x, player.position.z, player.collisionRadius);
+            if (free) {
+                player.position.x = free.x;
+                player.position.z = free.z;
+                player.mesh.position.x = free.x;
+                player.mesh.position.z = free.z;
+                cameraController.setTarget(free.x, free.z);
+            }
+        }
+        didInitialUnstuck = true;
+    }
     handleMovement();
     player.update(deltaTime);
     world.updateCampfires(); // Update campfire particles and lighting

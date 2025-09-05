@@ -12,6 +12,7 @@ export class Player {
         this.targetRotation = 0;
         this.rotationSpeed = 0.1; // Adjust this value to control rotation speed (0.1 = smooth, 1.0 = instant)
         this.interactionRange = 1.8; // Maximum distance for interactions in world units
+    this.collisionRadius = 0.4; // Player collision radius against map hitboxes (tweak as needed)
         this.currentInteractionTarget = null; // Store the current object being interacted with
         this.inventory = new Inventory(); // Add inventory system
         this.selectedTool = null; // Currently selected tool from hotbar

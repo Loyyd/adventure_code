@@ -8,6 +8,9 @@ export class World {
         this.raycaster = new THREE.Raycaster();
         this.assetInstances = new Map(); // Map to store instances by type
         this.loadedModels = new Map(); // Cache for loaded models
+    this.collisionBoxes = []; // Array of THREE.Box3 for map hitboxes (debug/optional)
+    this.hitboxMeshes = []; // Meshes used for precise raycast collision
+    this.debugHitboxHelpers = []; // Visual helpers for hitboxes (debug)
         
         // Clear model cache on development refresh
         if (this.isDevelopment()) {
@@ -46,6 +49,28 @@ export class World {
             
             // Store references to biome objects for later use and set up shadows
             this.mapModel.traverse((child) => {
+                // Detect if this node is within a hitbox subtree (itself or any parent named hitbox)
+                let node = child;
+                let inHitboxSubtree = false;
+                while (node) {
+                    const n = (node.name || '').toLowerCase();
+                    if (n.includes('hitbox')) { inHitboxSubtree = true; break; }
+                    node = node.parent;
+                }
+
+                if (inHitboxSubtree) {
+                    // Hide the entire subtree and collect hitbox meshes (and optional AABBs for debug)
+                    child.visible = false;
+                    if (child.isMesh) {
+                        child.castShadow = false;
+                        child.receiveShadow = false;
+                        this.hitboxMeshes.push(child);
+                        const meshBox = new THREE.Box3().setFromObject(child);
+                        this.collisionBoxes.push(meshBox);
+                    }
+                    return; // Skip biome/shadow/material setup for hitbox content
+                }
+
                 if (child.isMesh) {
                     const biomeName = child.name.toUpperCase().replace(/_/g, ' ');
                     this.biomeObjects.set(biomeName, child);
@@ -82,16 +107,108 @@ export class World {
             new THREE.Vector3(0, -1, 0)
         );
 
-        // Get all intersections with the map
+    // Raycast against the whole map; hidden hitboxes won't be intersected
         const intersects = this.raycaster.intersectObjects(this.mapModel.children, true);
         
         if (intersects.length > 0) {
-            const hitObject = intersects[0].object;
-            const biomeName = hitObject.name.toUpperCase().replace(/_/g, ' ');
-            return biomeName;
+            // Find the first non-hitbox object along the ray
+            for (const inter of intersects) {
+                let obj = inter.object;
+                let isHitbox = false;
+                while (obj) {
+                    const n = (obj.name || '').toLowerCase();
+                    if (n.includes('hitbox')) { isHitbox = true; break; }
+                    obj = obj.parent;
+                }
+                if (!isHitbox) {
+                    const biomeName = inter.object.name.toUpperCase().replace(/_/g, ' ');
+                    return biomeName;
+                }
+            }
         }
         
         return 'VOID';
+    }
+
+    // Check if the segment from (x1,z1) to (x2,z2) intersects any hitbox mesh
+    segmentIntersectsHitbox(x1, z1, x2, z2) {
+        if (!this.hitboxMeshes || this.hitboxMeshes.length === 0) return false;
+        const origin = new THREE.Vector3(x1, 1, z1);
+        const dir = new THREE.Vector3(x2 - x1, 0, z2 - z1);
+        const len = dir.length();
+        if (len === 0) return false;
+        dir.normalize();
+        this.raycaster.set(origin, dir);
+        this.raycaster.far = len + 1e-6; // include endpoint
+        const intersects = this.raycaster.intersectObjects(this.hitboxMeshes, true);
+        return intersects.length > 0;
+    }
+
+    // Resolve intended movement using raycasts against hitbox meshes
+    resolveCollision(oldX, oldZ, newX, newZ, radius = 0) {
+        // If the direct segment is clear, move fully
+        if (!this.segmentIntersectsHitbox(oldX, oldZ, newX, newZ)) {
+            return { x: newX, z: newZ };
+        }
+
+        // Try sliding moves
+        if (!this.segmentIntersectsHitbox(oldX, oldZ, newX, oldZ)) {
+            return { x: newX, z: oldZ };
+        }
+        if (!this.segmentIntersectsHitbox(oldX, oldZ, oldX, newZ)) {
+            return { x: oldX, z: newZ };
+        }
+
+        // Step back along the intended path to the last clear point
+        const dx = newX - oldX;
+        const dz = newZ - oldZ;
+        const steps = 8;
+        for (let i = steps - 1; i >= 0; i--) {
+            const t = i / steps;
+            const tx = oldX + dx * t;
+            const tz = oldZ + dz * t;
+            if (!this.segmentIntersectsHitbox(oldX, oldZ, tx, tz)) {
+                return { x: tx, z: tz };
+            }
+        }
+        return { x: oldX, z: oldZ };
+    }
+
+    // Find nearest free position by sampling concentric rings around (x,z)
+    findNearestFreePosition(x, z, radius = 0.4, maxRadius = 20, ringStep = 0.5, samplesPerRing = 24) {
+        // If current is free, return it
+        if (!this.isPositionBlocked(x, z, radius)) {
+            return { x, z };
+        }
+        for (let r = ringStep; r <= maxRadius; r += ringStep) {
+            for (let i = 0; i < samplesPerRing; i++) {
+                const angle = (i / samplesPerRing) * Math.PI * 2;
+                const sx = x + Math.cos(angle) * r;
+                const sz = z + Math.sin(angle) * r;
+                if (!this.isPositionBlocked(sx, sz, radius)) {
+                    return { x: sx, z: sz };
+                }
+            }
+        }
+        return null;
+    }
+
+    // Debug helper: show/hide hitbox wireframes
+    setShowHitboxes(show) {
+        // Remove existing helpers
+        if (this.debugHitboxHelpers.length) {
+            for (const helper of this.debugHitboxHelpers) {
+                this.scene.remove(helper);
+            }
+            this.debugHitboxHelpers = [];
+        }
+        if (!show) return;
+        // Add helpers for each stored Box3
+        for (const box of this.collisionBoxes) {
+            const helper = new THREE.Box3Helper(box, 0xff0000);
+            this.scene.add(helper);
+            this.debugHitboxHelpers.push(helper);
+        }
     }
 
     async loadModel(assetType) {
