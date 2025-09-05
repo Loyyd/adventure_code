@@ -235,15 +235,7 @@ export class Interface {
             };
             this.periodDisplay.style.color = periodColors[period] || '#cccccc';
         }
-        if (this.speedDisplay) {
-            if (speed === 0) {
-                this.speedDisplay.textContent = 'Time: PAUSED';
-                this.speedDisplay.style.color = '#ff6666';
-            } else {
-                this.speedDisplay.textContent = `Speed: ${speed}x`;
-                this.speedDisplay.style.color = '#aaaaaa';
-            }
-        }
+        
     }
 
     createItemNotificationUI() {
@@ -547,7 +539,7 @@ export class Interface {
     }
 
     showCampfireDialog(campfire, requiredSticks) {
-        // Create modal dialog for campfire building
+        // Create modal dialog for campfire building - styled similar to interaction window
         const overlay = document.createElement('div');
         overlay.style.cssText = `
             position: fixed;
@@ -555,7 +547,7 @@ export class Interface {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 3000;
             display: flex;
             align-items: center;
@@ -564,102 +556,152 @@ export class Interface {
         
         const dialog = document.createElement('div');
         dialog.style.cssText = `
-            background: #2c3e50;
+            background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 30px;
-            border-radius: 15px;
+            padding: 20px;
+            border-radius: 8px;
             font-family: Arial, sans-serif;
             text-align: center;
-            max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border: 2px solid #34495e;
+            max-width: 320px;
+            min-width: 280px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         `;
         
-        const title = document.createElement('h2');
+        const title = document.createElement('div');
         title.style.cssText = `
-            margin: 0 0 20px 0;
-            color: #e67e22;
-            font-size: 24px;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            font-weight: bold;
         `;
         title.textContent = '🔥 Build Campfire';
         
-        const message = document.createElement('p');
-        message.style.cssText = `
-            margin: 0 0 25px 0;
-            font-size: 16px;
-            line-height: 1.5;
-            color: #ecf0f1;
+        // Resource display similar to interaction progress
+        const resourceContainer = document.createElement('div');
+        resourceContainer.style.cssText = `
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        `;
+        
+        const resourceText = document.createElement('div');
+        resourceText.style.cssText = `
+            font-size: 14px;
+            margin-bottom: 8px;
         `;
         const currentSticks = window.gamePlayer?.inventory?.getItemCount('sticks') || 0;
-        message.textContent = `Cost: ${requiredSticks} sticks • You have: ${currentSticks}`;
+        resourceText.textContent = `Required: ${requiredSticks} sticks`;
+        
+        // Progress bar showing current resources
+        const progressBarContainer = document.createElement('div');
+        progressBarContainer.style.cssText = `
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        `;
+        
+        const progressBar = document.createElement('div');
+        const progressPercent = Math.min((currentSticks / requiredSticks) * 100, 100);
+        progressBar.style.cssText = `
+            width: ${progressPercent}%;
+            height: 100%;
+            background: linear-gradient(90deg, #ffff00, #ff8800);
+            transition: width 0.3s ease;
+        `;
+        
+        const statusText = document.createElement('div');
+        statusText.style.cssText = `
+            font-size: 12px;
+            color: ${currentSticks >= requiredSticks ? '#90EE90' : '#FFB6C1'};
+        `;
+        statusText.textContent = `You have: ${currentSticks} sticks`;
+        
+        progressBarContainer.appendChild(progressBar);
+        resourceContainer.appendChild(resourceText);
+        resourceContainer.appendChild(progressBarContainer);
+        resourceContainer.appendChild(statusText);
         
         const hint = document.createElement('div');
         hint.style.cssText = `
             font-size: 12px;
-            color: #bdc3c7;
-            margin-top: -18px;
-            margin-bottom: 18px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 15px;
         `;
         hint.textContent = 'Gather sticks from grass, bushes, and trees.';
         
         const buttonContainer = document.createElement('div');
         buttonContainer.style.cssText = `
             display: flex;
-            gap: 15px;
+            gap: 10px;
             justify-content: center;
         `;
         
         const yesButton = document.createElement('button');
         yesButton.style.cssText = `
-            background: #27ae60;
+            background: rgba(0, 255, 0, 0.7);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: background 0.2s ease;
+            font-family: Arial, sans-serif;
         `;
-        yesButton.textContent = `Build (${requiredSticks})`;
+        yesButton.textContent = 'Build';
         
         const noButton = document.createElement('button');
         noButton.style.cssText = `
-            background: #e74c3c;
+            background: rgba(255, 0, 0, 0.7);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: background 0.2s ease;
+            font-family: Arial, sans-serif;
         `;
-        noButton.textContent = 'No';
+        noButton.textContent = 'Cancel';
         
-        // Hover effects
+        // Hover effects - similar to interaction UI
         yesButton.addEventListener('mouseenter', () => {
-            yesButton.style.background = '#2ecc71';
+            yesButton.style.background = 'rgba(0, 255, 0, 0.9)';
         });
         yesButton.addEventListener('mouseleave', () => {
-            yesButton.style.background = '#27ae60';
+            yesButton.style.background = 'rgba(0, 255, 0, 0.7)';
         });
         
         noButton.addEventListener('mouseenter', () => {
-            noButton.style.background = '#c0392b';
+            noButton.style.background = 'rgba(255, 0, 0, 0.9)';
         });
         noButton.addEventListener('mouseleave', () => {
-            noButton.style.background = '#e74c3c';
+            noButton.style.background = 'rgba(255, 0, 0, 0.7)';
         });
         
-        // Disable/enable build button based on inventory
-        const updateButtonState = () => {
+        // Update display function
+        const updateDisplay = () => {
             const sticks = window.gamePlayer?.inventory?.getItemCount('sticks') || 0;
             const canBuild = sticks >= requiredSticks;
+            const progressPercent = Math.min((sticks / requiredSticks) * 100, 100);
+            
+            // Update progress bar
+            progressBar.style.width = `${progressPercent}%`;
+            
+            // Update status text
+            statusText.textContent = `You have: ${sticks} sticks`;
+            statusText.style.color = canBuild ? '#90EE90' : '#FFB6C1';
+            
+            // Update button state
             yesButton.disabled = !canBuild;
-            yesButton.style.opacity = canBuild ? '1' : '0.6';
+            yesButton.style.opacity = canBuild ? '1' : '0.5';
             yesButton.style.cursor = canBuild ? 'pointer' : 'not-allowed';
-            message.textContent = `Cost: ${requiredSticks} sticks • You have: ${sticks}`;
+            yesButton.style.background = canBuild ? 'rgba(0, 255, 0, 0.7)' : 'rgba(128, 128, 128, 0.7)';
         };
-        updateButtonState();
+        updateDisplay();
         
         // Listen for inventory changes to live-update
         const originalOnInventoryChange = window.gamePlayer?.inventory?.onInventoryChange;
@@ -667,7 +709,7 @@ export class Interface {
             window.gamePlayer.inventory.onInventoryChange = () => {
                 // Call existing callback if any
                 if (originalOnInventoryChange) originalOnInventoryChange();
-                updateButtonState();
+                updateDisplay();
             };
         }
 
@@ -702,11 +744,12 @@ export class Interface {
             document.removeEventListener('keydown', handleKeyPress);
         };
         
+        // Assemble the dialog
         buttonContainer.appendChild(yesButton);
         buttonContainer.appendChild(noButton);
         
         dialog.appendChild(title);
-        dialog.appendChild(message);
+        dialog.appendChild(resourceContainer);
         dialog.appendChild(hint);
         dialog.appendChild(buttonContainer);
         

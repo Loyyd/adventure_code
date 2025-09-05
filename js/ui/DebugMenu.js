@@ -283,13 +283,6 @@ export class DebugMenu {
             debugText += `(${player.position.x.toFixed(1)}, ${player.position.z.toFixed(1)})<br><br>`;
         }
         
-        // Item buttons info
-        debugText += `<strong>Item Buttons:</strong><br>`;
-        debugText += `Use the buttons below to get items:<br>`;
-        debugText += `- Axe<br>`;
-        debugText += `- Pickaxe<br>`;
-        debugText += `- 5 Sticks<br><br>`;
-        
         // Exit
         debugText += `<strong>P - Close Debug Mode</strong>`;
         

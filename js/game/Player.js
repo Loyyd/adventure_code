@@ -387,9 +387,6 @@ export class Player {
             // Activate the campfire
             if (window.gameWorld) {
                 window.gameWorld.activateCampfire(campfire);
-                if (window.gameInterface) {
-                    window.gameInterface.showMessage('🔥 Campfire built! The warm light pushes back the darkness.');
-                }
             }
         } else {
             // Failed to remove sticks from inventory - should not happen
