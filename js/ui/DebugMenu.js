@@ -2,6 +2,12 @@ export class DebugMenu {
     constructor(player) {
         this.player = player;
         this.debugMode = false;
+        // Local icon map for debug buttons (keep in sync with InventoryUI where possible)
+        this.itemIcons = {
+            axe: '\ud83e\ude93',       // 🪓
+            pickaxe: '\u26cf\ufe0f',  // ⛏️
+            sticks: '\ud83c\udfd2'    // 🏒 (placeholder for sticks)
+        };
         this.createDebugUI();
     }
 
@@ -30,7 +36,202 @@ export class DebugMenu {
         this.debugContent = document.createElement('div');
         this.debugOverlay.appendChild(this.debugContent);
         
+        // Create item buttons
+        this.createItemButtons();
+        
         document.body.appendChild(this.debugOverlay);
+    }
+    
+    createItemButtons() {
+        // Create container for item buttons
+        this.itemButtonsContainer = document.createElement('div');
+        this.itemButtonsContainer.style.cssText = `
+            margin-top: 12px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 6px;
+        `;
+        
+        // Create axe button with direct onclick handler
+        const axeButton = document.createElement('button');
+        axeButton.style.cssText = this.getButtonStyle();
+        this.setButtonContent(axeButton, this.itemIcons.axe, 'Axe');
+        axeButton.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Axe button clicked!");
+            this.directAddItem('axe', 1);
+        };
+        this.addButtonHoverEffects(axeButton);
+        
+        // Create pickaxe button with direct onclick handler
+        const pickaxeButton = document.createElement('button');
+        pickaxeButton.style.cssText = this.getButtonStyle();
+        this.setButtonContent(pickaxeButton, this.itemIcons.pickaxe, 'Pickaxe');
+        pickaxeButton.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Pickaxe button clicked!");
+            this.directAddItem('pickaxe', 1);
+        };
+        this.addButtonHoverEffects(pickaxeButton);
+        
+        // Create sticks button with direct onclick handler
+        const sticksButton = document.createElement('button');
+        sticksButton.style.cssText = this.getButtonStyle();
+        this.setButtonContent(sticksButton, this.itemIcons.sticks, '5 Sticks');
+        sticksButton.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Sticks button clicked!");
+            this.directAddItem('sticks', 5);
+        };
+        this.addButtonHoverEffects(sticksButton);
+        
+        // Add buttons to container
+        this.itemButtonsContainer.appendChild(axeButton);
+        this.itemButtonsContainer.appendChild(pickaxeButton);
+        this.itemButtonsContainer.appendChild(sticksButton);
+        
+        // Add container to debug overlay
+        this.debugOverlay.appendChild(this.itemButtonsContainer);
+    }
+    
+    setButtonContent(button, icon, label) {
+        button.innerHTML = '';
+        const iconSpan = document.createElement('span');
+        iconSpan.textContent = icon;
+        iconSpan.style.cssText = `font-size: 14px; line-height: 1;`;
+        const textSpan = document.createElement('span');
+        textSpan.textContent = label;
+        textSpan.style.cssText = `font-size: 11px; margin-left: 6px;`;
+        button.appendChild(iconSpan);
+        button.appendChild(textSpan);
+    }
+
+    addButtonHoverEffects(button) {
+        button.addEventListener('mouseover', () => {
+            button.style.background = '#0a3a0a';
+        });
+        button.addEventListener('mouseout', () => {
+            button.style.background = '#062d06';
+        });
+    }
+    
+    getButtonStyle() {
+        return `
+            background: #062d06;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 4px 8px;
+            margin: 0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        `;
+    }
+    
+    givePlayerItem(itemType, quantity) {
+        // Use window.gamePlayer which is guaranteed to be the current player instance
+        const player = window.gamePlayer || this.player;
+        
+        if (player && player.inventory) {
+            console.log(`Debug: Attempting to add ${quantity} ${itemType}(s) to player inventory`);
+            const added = player.inventory.addItem(itemType, quantity);
+            if (added) {
+                console.log(`Debug: Successfully added ${quantity} ${itemType}(s) to player inventory`);
+                // Show notification if UI is available
+                if (window.gameInterface) {
+                    window.gameInterface.showItemNotification([`${quantity} ${itemType}(s)`]);
+                }
+            } else {
+                console.log(`Debug: Could not add ${itemType} to inventory. It may be full or player already has this tool.`);
+                // Show a message explaining why it couldn't be added
+                if (window.gameInterface) {
+                    if (player.inventory.toolTypes && player.inventory.toolTypes.has(itemType) && player.inventory.items.has(itemType)) {
+                        window.gameInterface.showMessage(`You already have a ${itemType}.`, 2000);
+                    } else {
+                        window.gameInterface.showMessage(`Could not add ${itemType} to inventory.`, 2000);
+                    }
+                }
+            }
+        } else {
+            console.error("Debug: Player or inventory not available");
+            if (window.gameInterface) {
+                window.gameInterface.showMessage("Error: Player or inventory not available", 2000);
+            }
+        }
+    }
+    
+    // Direct inventory manipulation with more robust error checking
+    directAddItem(itemType, quantity) {
+        console.log(`Debug Button: directAddItem called with ${itemType}, ${quantity}`);
+        
+        try {
+            // Make sure global player exists
+            if (!window.gamePlayer) {
+                console.error("Debug: window.gamePlayer is not defined");
+                alert("Error: gamePlayer not found");
+                return;
+            }
+            
+            // Make sure inventory exists
+            if (!window.gamePlayer.inventory) {
+                console.error("Debug: window.gamePlayer.inventory is not defined");
+                alert("Error: Player inventory not found");
+                return;
+            }
+            
+            console.log("Debug: Player inventory found:", window.gamePlayer.inventory);
+            
+            // Try to add item directly to inventory
+            const result = window.gamePlayer.inventory.addItem(itemType, quantity);
+            console.log(`Debug: addItem result: ${result}`);
+            
+            if (result) {
+                console.log(`Debug: Added ${quantity} ${itemType}(s) to inventory`);
+                
+                // Show visual confirmation
+                if (window.gameInterface) {
+                    window.gameInterface.showMessage(`Added ${quantity} ${itemType}(s) to inventory`, 1500);
+                    window.gameInterface.showItemNotification([`${quantity} ${itemType}(s)`]);
+                } else {
+                    alert(`Added ${quantity} ${itemType}(s) to inventory`);
+                }
+            } else {
+                // Print debug info for inventory state
+                console.log("Debug: Current inventory:", window.gamePlayer.inventory.items);
+                console.log("Debug: Tool types:", window.gamePlayer.inventory.toolTypes);
+                
+                // Handle tools that can only be added once
+                if (window.gamePlayer.inventory.toolTypes && 
+                    window.gamePlayer.inventory.toolTypes.has(itemType) && 
+                    window.gamePlayer.inventory.items.has(itemType)) {
+                    console.log(`Debug: Cannot add ${itemType} because you already have one`);
+                    if (window.gameInterface) {
+                        window.gameInterface.showMessage(`You already have a ${itemType}`, 1500);
+                    } else {
+                        alert(`You already have a ${itemType}`);
+                    }
+                } else {
+                    console.log(`Debug: Failed to add ${itemType} to inventory (unknown reason)`);
+                    if (window.gameInterface) {
+                        window.gameInterface.showMessage(`Failed to add ${itemType} to inventory`, 1500);
+                    } else {
+                        alert(`Failed to add ${itemType} to inventory`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Debug: Error in directAddItem:", error);
+            alert(`Error adding item: ${error.message}`);
+        }
     }
 
     toggleDebugMode(enabled) {
@@ -41,6 +242,21 @@ export class DebugMenu {
         if (enabled) {
             console.log('Debug: Debug mode enabled, updating info');
             this.updateDebugInfo();
+            
+            // Make sure item buttons container is visible and properly positioned
+            if (this.itemButtonsContainer) {
+                this.itemButtonsContainer.style.display = 'flex';
+                console.log('Debug: Item buttons should be visible');
+                
+                // Force redraw
+                setTimeout(() => {
+                    this.debugOverlay.style.display = 'none';
+                    setTimeout(() => {
+                        this.debugOverlay.style.display = 'block';
+                    }, 10);
+                }, 0);
+            }
+            
             console.log('Debug: Debug overlay should now be visible');
         } else {
             console.log('Debug: Debug mode disabled');
@@ -77,6 +293,13 @@ export class DebugMenu {
             debugText += `<strong>Player Position:</strong><br>`;
             debugText += `(${player.position.x.toFixed(1)}, ${player.position.z.toFixed(1)})<br><br>`;
         }
+        
+        // Item buttons info
+        debugText += `<strong>Item Buttons:</strong><br>`;
+        debugText += `Use the buttons below to get items:<br>`;
+        debugText += `- Axe<br>`;
+        debugText += `- Pickaxe<br>`;
+        debugText += `- 5 Sticks<br><br>`;
         
         // Exit
         debugText += `<strong>P - Close Debug Mode</strong>`;
