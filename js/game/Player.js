@@ -19,7 +19,9 @@ export class Player {
         
         // Interaction timing system
         this.interactionStartTime = null;
-        this.interactionDuration = 3000; // 3 seconds in milliseconds
+        // Interaction duration will be determined dynamically based on debug mode
+        this.baseInteractionDuration = 3000; // 3 seconds base duration
+        this.debugInteractionDuration = 500; // 0.5 seconds in debug mode
         this.isInteractionInProgress = false;
         this.interactionProgressCallback = null; // Callback for UI updates
         this.justCompletedInteraction = false; // Flag to prevent immediate re-interaction
@@ -27,6 +29,18 @@ export class Player {
         
         this.loadCharacterModel();
         scene.add(this.mesh);
+    }
+
+    isDevelopment() {
+        return location.hostname === 'localhost' || 
+               location.hostname === '127.0.0.1' || 
+               location.hostname === '0.0.0.0';
+    }
+
+    getInteractionDuration() {
+        // Check if debug mode is active via the global controls (updated)
+        const isDebugMode = window.gameControls && window.gameControls.isDebugMode();
+        return isDebugMode ? this.debugInteractionDuration : this.baseInteractionDuration;
     }
 
     async loadCharacterModel() {
@@ -246,7 +260,7 @@ export class Player {
         
         // Notify UI about interaction start
         if (this.interactionProgressCallback) {
-            this.interactionProgressCallback(0, this.interactionDuration, item.position);
+            this.interactionProgressCallback(0, this.getInteractionDuration(), item.position);
         }
     }
 
@@ -269,16 +283,17 @@ export class Player {
         }
 
         const elapsed = Date.now() - this.interactionStartTime;
-        const progress = Math.min(elapsed / this.interactionDuration, 1.0);
+        const interactionDuration = this.getInteractionDuration();
+        const progress = Math.min(elapsed / interactionDuration, 1.0);
         
         // Update UI progress
         if (this.interactionProgressCallback) {
             const targetPos = this.currentInteractionTarget ? this.currentInteractionTarget.position : null;
-            this.interactionProgressCallback(elapsed, this.interactionDuration, targetPos);
+            this.interactionProgressCallback(elapsed, interactionDuration, targetPos);
         }
 
         // Check if interaction is complete
-        if (elapsed >= this.interactionDuration) {
+        if (elapsed >= interactionDuration) {
             this.completeInteraction();
         }
     }

@@ -160,8 +160,8 @@ export class World {
         
         const scaleRange = assetData.scale[assetConfig.scale];
         if (!scaleRange) {
-            console.error(`Scale range '${assetConfig.scale}' not found for asset type: ${assetType}`);
-            console.log('Available scales:', Object.keys(assetData.scale));
+            //console.error(`Scale range '${assetConfig.scale}' not found for asset type: ${assetType}`);
+            //console.log('Available scales:', Object.keys(assetData.scale));
             return [];
         }
         

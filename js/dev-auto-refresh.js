@@ -47,7 +47,7 @@ class DevAutoRefresh {
     }
     
     addStatusIndicator() {
-        // Create a small status indicator
+        // Create a small status indicator (completely hidden)
         const indicator = document.createElement('div');
         indicator.id = 'dev-refresh-indicator';
         indicator.innerHTML = '🔄';
@@ -64,6 +64,9 @@ class DevAutoRefresh {
             font-family: monospace;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: none !important;
+            visibility: hidden;
+            opacity: 0;
         `;
         
         indicator.addEventListener('click', () => this.forceRefresh());

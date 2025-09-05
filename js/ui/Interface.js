@@ -698,12 +698,7 @@ export class Interface {
         this.debugMode = enabled;
         this.debugOverlay.style.display = enabled ? 'block' : 'none';
         
-        if (enabled) {
-            this.showMessage('🐛 DEBUG MODE\nT: Teleport to campfire\nN: Pause/Resume time\nM: Set to day\nB: Set to night\nP: Close debug', 4000);
-        } else {
-            this.showMessage('Debug mode closed', 1500);
-        }
-        
+        // No popup messages - cache busting comment
         this.updateDebugInfo();
     }
 
