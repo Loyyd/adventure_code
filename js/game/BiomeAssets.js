@@ -9,7 +9,9 @@ export const biomeAssets = {
         colors: {
             default: 0x4f8d63,
             darkWoods: 0x2a4d2a
-        }
+        },
+        // No hitbox - grass can be walked through
+        hitbox: null
     },
     bush: {
         model: '/glb/assets/bush/bush.glb',
@@ -21,6 +23,11 @@ export const biomeAssets = {
         colors: {
             default: 0x3d5a3d,
             darkWoods: 0x2a3d2a
+        },
+        // Bush blocks movement - circular hitbox
+        hitbox: {
+            type: 'circle',
+            radius: 0.8 // Radius in world units
         }
     },
     rock: {
@@ -35,6 +42,12 @@ export const biomeAssets = {
         colors: {
             default: 0x808080,
             desert: 0xc19a6b
+        },
+        // Rock blocks movement - scale-dependent circular hitbox
+        hitbox: {
+            type: 'circle',
+            radius: 0.6, // Base radius, will be scaled
+            scaleWithAsset: true
         }
     },
     tree: {
@@ -49,6 +62,12 @@ export const biomeAssets = {
         colors: {
             default: 0x4a7c59,
             darkWoods: 0x2d3d2d
+        },
+        // Tree blocks movement - larger circular hitbox
+        hitbox: {
+            type: 'circle',
+            radius: 1.0,
+            scaleWithAsset: true
         }
     },
     campfire: {
@@ -61,6 +80,11 @@ export const biomeAssets = {
         colors: {
             default: 0x8B4513,
             inactive: 0x555555
+        },
+        // Campfire blocks movement - small circular hitbox
+        hitbox: {
+            type: 'circle',
+            radius: 0.7
         }
     }
 };

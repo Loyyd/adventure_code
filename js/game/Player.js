@@ -441,6 +441,11 @@ export class Player {
         // Remove from scene
         this.scene.remove(asset);
         
+        // NEW: Remove hitbox from world
+        if (window.gameWorld && window.gameWorld.removeAssetHitbox) {
+            window.gameWorld.removeAssetHitbox(asset);
+        }
+        
         // Remove from world's asset instances tracking
         // This requires access to the world instance, which we'll need to pass or store
         if (window.gameWorld && window.gameWorld.assetInstances) {

@@ -130,9 +130,10 @@ function handleMovement() {
     const movement = controls.getMovement();
     const intendedX = player.position.x + movement.x;
     const intendedZ = player.position.z + movement.z;
-    // Resolve collisions against world hitboxes before moving
-    const resolved = world && world.resolveCollision && world.collisionBoxes
-        ? world.resolveCollision(player.position.x, player.position.z, intendedX, intendedZ, player.collisionRadius)
+    
+    // Resolve collisions against both world hitboxes AND asset hitboxes
+    const resolved = world && world.resolveCollisionWithAssets
+        ? world.resolveCollisionWithAssets(player.position.x, player.position.z, intendedX, intendedZ, player.collisionRadius)
         : { x: intendedX, z: intendedZ };
     
     // Pass the currently hovered object as the interaction target when interacting
@@ -264,10 +265,11 @@ function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
     
-    // On first frames, if the player spawns inside a hitbox, snap to nearest free
-    if (!didInitialUnstuck && world && world.isPositionBlocked && player) {
-        if (world.isPositionBlocked(player.position.x, player.position.z, player.collisionRadius)) {
-            const free = world.findNearestFreePosition(player.position.x, player.position.z, player.collisionRadius);
+    // Updated initial unstuck logic to consider asset hitboxes
+    if (!didInitialUnstuck && world && world.checkAssetCollision && player) {
+        if (world.isPositionBlocked(player.position.x, player.position.z, player.collisionRadius) ||
+            world.checkAssetCollision(player.position.x, player.position.z, player.collisionRadius)) {
+            const free = world.findNearestFreePositionWithAssets(player.position.x, player.position.z, player.collisionRadius);
             if (free) {
                 player.position.x = free.x;
                 player.position.z = free.z;

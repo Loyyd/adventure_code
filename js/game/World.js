@@ -12,6 +12,10 @@ export class World {
         this.hitboxMeshes = []; // Meshes used for precise raycast collision
         this.debugHitboxHelpers = []; // Visual helpers for hitboxes (debug)
         
+        // NEW: Asset hitboxes for collision detection
+        this.assetHitboxes = []; // Array of hitbox objects for assets
+        this.debugAssetHitboxHelpers = []; // Visual helpers for asset hitboxes (debug)
+        
         // Clear model cache on development refresh
         if (this.isDevelopment()) {
             this.clearModelCache();
@@ -213,6 +217,112 @@ export class World {
         return null;
     }
 
+    // NEW: Check collision with asset hitboxes
+    checkAssetCollision(x, z, radius) {
+        for (const hitbox of this.assetHitboxes) {
+            if (this.circleCircleCollision(x, z, radius, hitbox.x, hitbox.z, hitbox.radius)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // NEW: Circle-circle collision detection
+    circleCircleCollision(x1, z1, r1, x2, z2, r2) {
+        const dx = x1 - x2;
+        const dz = z1 - z2;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        return distance < (r1 + r2);
+    }
+
+    // NEW: Find nearest free position considering asset hitboxes
+    findNearestFreePositionWithAssets(x, z, radius = 0.4, maxRadius = 20, ringStep = 0.5, samplesPerRing = 24) {
+        // Check if current position is free from both map and asset collisions
+        if (!this.isPositionBlocked(x, z, radius) && !this.checkAssetCollision(x, z, radius)) {
+            return { x, z };
+        }
+        
+        for (let r = ringStep; r <= maxRadius; r += ringStep) {
+            for (let i = 0; i < samplesPerRing; i++) {
+                const angle = (i / samplesPerRing) * Math.PI * 2;
+                const sx = x + Math.cos(angle) * r;
+                const sz = z + Math.sin(angle) * r;
+                if (!this.isPositionBlocked(sx, sz, radius) && !this.checkAssetCollision(sx, sz, radius)) {
+                    return { x: sx, z: sz };
+                }
+            }
+        }
+        return null;
+    }
+
+    // Updated collision resolution to include asset hitboxes
+    resolveCollisionWithAssets(oldX, oldZ, newX, newZ, radius = 0.4) {
+        // First check map hitboxes
+        const mapResolved = this.resolveCollision(oldX, oldZ, newX, newZ, radius);
+        
+        // Then check asset hitboxes
+        if (!this.checkAssetCollision(mapResolved.x, mapResolved.z, radius)) {
+            return mapResolved;
+        }
+
+        // Try sliding moves against assets
+        if (!this.checkAssetCollision(mapResolved.x, oldZ, radius)) {
+            return { x: mapResolved.x, z: oldZ };
+        }
+        if (!this.checkAssetCollision(oldX, mapResolved.z, radius)) {
+            return { x: oldX, z: mapResolved.z };
+        }
+
+        // Step back along the intended path to find the last clear point
+        const dx = mapResolved.x - oldX;
+        const dz = mapResolved.z - oldZ;
+        const steps = 8;
+        for (let i = steps - 1; i >= 0; i--) {
+            const t = i / steps;
+            const tx = oldX + dx * t;
+            const tz = oldZ + dz * t;
+            if (!this.checkAssetCollision(tx, tz, radius)) {
+                return { x: tx, z: tz };
+            }
+        }
+        return { x: oldX, z: oldZ };
+    }
+
+    // NEW: Add hitbox for an asset instance
+    addAssetHitbox(instance, assetConfig, assetType) {
+        const assetData = biomeAssets[assetType];
+        if (!assetData || !assetData.hitbox) {
+            return; // No hitbox defined for this asset
+        }
+
+        const hitboxConfig = assetData.hitbox;
+        let radius = hitboxConfig.radius;
+
+        // Scale hitbox with asset if specified
+        if (hitboxConfig.scaleWithAsset) {
+            radius *= instance.scale.x; // Assume uniform scaling
+        }
+
+        const hitbox = {
+            x: instance.position.x,
+            z: instance.position.z,
+            radius: radius,
+            type: hitboxConfig.type,
+            instance: instance // Reference to the asset instance
+        };
+
+        this.assetHitboxes.push(hitbox);
+        return hitbox;
+    }
+
+    // NEW: Remove hitbox when asset is removed
+    removeAssetHitbox(instance) {
+        const index = this.assetHitboxes.findIndex(hitbox => hitbox.instance === instance);
+        if (index !== -1) {
+            this.assetHitboxes.splice(index, 1);
+        }
+    }
+
     // Debug helper: show/hide hitbox wireframes
     setShowHitboxes(show) {
         // Remove existing helpers
@@ -222,6 +332,15 @@ export class World {
             }
             this.debugHitboxHelpers = [];
         }
+        
+        // Remove asset hitbox helpers
+        if (this.debugAssetHitboxHelpers.length) {
+            for (const helper of this.debugAssetHitboxHelpers) {
+                this.scene.remove(helper);
+            }
+            this.debugAssetHitboxHelpers = [];
+        }
+        
         if (!show) return;
         
         // Add helpers for each stored Box3
@@ -272,8 +391,26 @@ export class World {
             this.scene.add(wireframe);
             this.debugHitboxHelpers.push(wireframe);
         }
+
+        // NEW: Add asset hitbox helpers (blue circles)
+        for (const hitbox of this.assetHitboxes) {
+            const geometry = new THREE.RingGeometry(hitbox.radius - 0.05, hitbox.radius + 0.05, 32);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0x0066ff,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+
+            const helper = new THREE.Mesh(geometry, material);
+            helper.rotation.x = -Math.PI / 2; // Rotate to lie flat on ground
+            helper.position.set(hitbox.x, 0.01, hitbox.z); // Slightly above ground
+            
+            this.scene.add(helper);
+            this.debugAssetHitboxHelpers.push(helper);
+        }
         
-        console.log(`[Debug] ${show ? 'Showing' : 'Hiding'} ${this.debugHitboxHelpers.length} hitbox visualizations`);
+        console.log(`[Debug] ${show ? 'Showing' : 'Hiding'} ${this.debugHitboxHelpers.length} map hitboxes and ${this.debugAssetHitboxHelpers.length} asset hitboxes`);
     }
 
     async loadModel(assetType) {
@@ -443,6 +580,9 @@ export class World {
                         this.scene.add(instance);
                         instances.push(instance);
                         placedPositions.add(posKey);
+                        
+                        // NEW: Add hitbox for this instance
+                        this.addAssetHitbox(instance, assetConfig, assetConfig.type);
                     }
                 }
             }
