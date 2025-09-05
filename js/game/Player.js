@@ -11,7 +11,7 @@ export class Player {
         this.currentAnimation = null;
         this.targetRotation = 0;
         this.rotationSpeed = 0.1; // Adjust this value to control rotation speed (0.1 = smooth, 1.0 = instant)
-        this.interactionRange = 1.8; // Maximum distance for interactions in world units
+        this.defaultInteractionRange = 1.8; // Fallback interaction range when asset-specific radius is not available
         this.collisionRadius = 0.4; // Player collision radius against map hitboxes
         this.currentInteractionTarget = null; // Store the current object being interacted with
         this.inventory = new Inventory(); // Add inventory system
@@ -46,6 +46,14 @@ export class Player {
         }
         const isDebugMode = window.gameControls && window.gameControls.isDebugMode();
         return isDebugMode ? Math.max(100, Math.floor(duration * this.debugDurationScale)) : duration;
+    }
+
+    getInteractionRadiusForAsset(assetType) {
+        // Get asset-specific interaction radius, fallback to default if not defined
+        if (assetType && biomeAssets[assetType] && biomeAssets[assetType].interactionRadius) {
+            return biomeAssets[assetType].interactionRadius;
+        }
+        return this.defaultInteractionRange;
     }
 
     async loadCharacterModel() {
@@ -187,11 +195,19 @@ export class Player {
         }
     }
 
-    isItemInRange(itemPosition) {
+    isItemInRange(itemPosition, item = null) {
         const dx = itemPosition.x - this.position.x;
         const dz = itemPosition.z - this.position.z;
         const distanceSquared = dx * dx + dz * dz;
-        return distanceSquared <= (this.interactionRange * this.interactionRange);
+        
+        // Get asset-specific interaction radius
+        let interactionRange = this.defaultInteractionRange;
+        if (item) {
+            const assetType = this.getAssetType(item);
+            interactionRange = this.getInteractionRadiusForAsset(assetType);
+        }
+        
+        return distanceSquared <= (interactionRange * interactionRange);
     }
 
     isItemSelectable(item) {
@@ -257,7 +273,7 @@ export class Player {
 
         // Check if item is valid for interaction and we have the required tool
         const assetType = this.getAssetType(item);
-        if (this.isItemSelectable(item) && this.isItemInRange(item.position)) {
+        if (this.isItemSelectable(item) && this.isItemInRange(item.position, item)) {
             // Check if we have the required tool
             if (!this.canInteractWithAsset(assetType)) {
                 return false;

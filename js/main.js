@@ -224,7 +224,7 @@ function checkHover() {
         const isAssetInstance = Array.from(world.assetInstances.values()).some(instances => instances.includes(assetParent));
         
         // Only highlight if the object is within interaction range and is a valid asset instance
-        if (isAssetInstance && player.isItemInRange(assetParent.position) && hoveredObject !== assetParent) {
+        if (isAssetInstance && player.isItemInRange(assetParent.position, assetParent) && hoveredObject !== assetParent) {
             // Skip active campfires entirely (non-interactable after built)
             const assetType = player.getAssetTypePublic(assetParent);
             if (assetType === 'campfire' && assetParent.userData && assetParent.userData.isActive) {
@@ -250,7 +250,7 @@ function checkHover() {
             }
             
             outlinePass.selectedObjects = [assetParent];
-        } else if (!player.isItemInRange(assetParent.position)) {
+        } else if (!player.isItemInRange(assetParent.position, assetParent)) {
             // Clear highlighting if object is out of range
             hoveredObject = null;
             outlinePass.selectedObjects = [];
