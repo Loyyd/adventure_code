@@ -163,13 +163,32 @@ class DevAutoRefresh {
         
         // Add a small delay to ensure file operations are complete
         setTimeout(() => {
-            window.location.reload();
+            // For development, use the most aggressive refresh method
+            // This clears all caches including Three.js internal caches
+            if (window.location.search.includes('force=true')) {
+                window.location.href = window.location.pathname + '?t=' + Date.now();
+            } else {
+                // Add cache-busting parameter to URL
+                const separator = window.location.search ? '&' : '?';
+                window.location.href = window.location.pathname + window.location.search + separator + 't=' + Date.now();
+            }
         }, 100);
     }
     
     forceRefresh() {
         console.log('🔄 Manual refresh triggered');
-        this.refresh();
+        
+        // Even more aggressive cache clearing for manual refresh
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                names.forEach(function(name) {
+                    caches.delete(name);
+                });
+            });
+        }
+        
+        // Force complete page reload with cache busting
+        window.location.href = window.location.pathname + '?force=true&t=' + Date.now();
     }
     
     stop() {

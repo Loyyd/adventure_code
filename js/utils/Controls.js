@@ -82,16 +82,53 @@ export class Controls {
         
         // Add mouse click listener
         document.addEventListener('mousedown', (e) => {
+            // Don't interfere with UI elements at all
+            if (e.target.tagName === 'BUTTON' || 
+                e.target.closest('button') ||
+                e.target.closest('#debugOverlay') ||
+                e.target.closest('#externalDebugButtons') ||
+                e.target.closest('#inventoryModal') ||
+                e.target.id === 'debugOverlay' ||
+                e.target.id === 'externalDebugButtons') {
+                console.log('Controls: Completely ignoring mousedown on UI element:', e.target);
+                return;
+            }
+            
             if (e.button === 0) { // Left click
                 this.isInteracting = true;
             }
         });
         
         document.addEventListener('mouseup', (e) => {
+            // Don't interfere with UI elements at all
+            if (e.target.tagName === 'BUTTON' || 
+                e.target.closest('button') ||
+                e.target.closest('#debugOverlay') ||
+                e.target.closest('#externalDebugButtons') ||
+                e.target.closest('#inventoryModal') ||
+                e.target.id === 'debugOverlay' ||
+                e.target.id === 'externalDebugButtons') {
+                console.log('Controls: Completely ignoring mouseup on UI element:', e.target);
+                return;
+            }
+            
             if (e.button === 0) { // Left click
                 this.isInteracting = false;
             }
         });
+
+        // Also add click handler to completely block game clicks on UI
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' || 
+                e.target.closest('button') ||
+                e.target.closest('#debugOverlay') ||
+                e.target.closest('#externalDebugButtons') ||
+                e.target.closest('#inventoryModal')) {
+                console.log('Controls: Blocking game click on UI element:', e.target);
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+        }, true); // Use capture phase
     }
 
     getMovement() {

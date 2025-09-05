@@ -8,12 +8,38 @@ export class World {
         this.raycaster = new THREE.Raycaster();
         this.assetInstances = new Map(); // Map to store instances by type
         this.loadedModels = new Map(); // Cache for loaded models
+        
+        // Clear model cache on development refresh
+        if (this.isDevelopment()) {
+            this.clearModelCache();
+        }
+        
         this.createWorld();
+    }
+
+    isDevelopment() {
+        return location.hostname === 'localhost' || 
+               location.hostname === '127.0.0.1' || 
+               location.hostname === '0.0.0.0';
+    }
+
+    clearModelCache() {
+        console.log('[World] Clearing model cache for fresh reload');
+        this.loadedModels.clear();
     }
 
     createWorld() {
         const loader = new THREE.GLTFLoader();
-        loader.load('/glb/map/map.glb', 
+        
+        let mapPath = '/glb/map/map.glb';
+        // Add cache-busting for development environment
+        if (this.isDevelopment()) {
+            const cacheBuster = Date.now();
+            mapPath = `${mapPath}?t=${cacheBuster}`;
+            console.log(`[World] Loading map with cache-bust: ${mapPath}`);
+        }
+        
+        loader.load(mapPath, 
             (gltf) => {
             this.mapModel = gltf.scene;
             this.scene.add(this.mapModel);
@@ -73,7 +99,16 @@ export class World {
             return this.loadedModels.get(assetType);
         }
 
-        const modelPath = biomeAssets[assetType].model;
+        let modelPath = biomeAssets[assetType].model;
+        
+        // Add cache-busting for development environment
+        if (this.isDevelopment()) {
+            const cacheBuster = Date.now();
+            const separator = modelPath.includes('?') ? '&' : '?';
+            modelPath = `${modelPath}${separator}t=${cacheBuster}`;
+            console.log(`[World] Loading model with cache-bust: ${modelPath}`);
+        }
+        
         const loader = new THREE.GLTFLoader();
 
         try {

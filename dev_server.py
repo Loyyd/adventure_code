@@ -27,16 +27,40 @@ class DevHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, **kwargs)
     
     def end_headers(self):
+        # CORS headers
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        
+        # Aggressive cache busting for development
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        
         super().end_headers()
+    
+    def guess_type(self, path):
+        """Enhanced MIME type detection"""
+        # Convert path to string if it's a Path object
+        path_str = str(path)
+        
+        # Handle .glb files specifically
+        if path_str.endswith('.glb'):
+            return 'model/gltf-binary'
+        
+        # Call parent method and return just the mimetype
+        mimetype, encoding = mimetypes.guess_type(path_str)
+        return mimetype or 'application/octet-stream'
     
     def do_GET(self):
         # Handle file change polling endpoint
         if self.path == '/dev/poll':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            # Extra cache busting for poll endpoint
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
             self.end_headers()
             
             global last_modified_time
@@ -47,7 +71,15 @@ class DevHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(response).encode())
             return
         
-        # Handle regular file serving
+        # Add cache-busting timestamp to GLB files
+        if self.path.endswith('.glb'):
+            # Add timestamp query parameter for aggressive cache busting
+            parsed_path = self.path
+            if '?' not in parsed_path:
+                parsed_path += f"?t={int(time.time() * 1000)}"
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Serving GLB with cache-bust: {parsed_path}")
+        
+        # Handle regular file serving with enhanced cache busting
         super().do_GET()
     
     def do_POST(self):
@@ -98,8 +130,10 @@ def watch_files():
         try:
             current_time = file_watcher.get_latest_modification_time()
             if current_time > last_modified_time:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] Files changed detected - triggering refresh")
+                print(f"  Previous: {datetime.fromtimestamp(last_modified_time).strftime('%H:%M:%S.%f')}")
+                print(f"  Current:  {datetime.fromtimestamp(current_time).strftime('%H:%M:%S.%f')}")
                 last_modified_time = current_time
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Files changed - refresh triggered")
         except Exception as e:
             print(f"Error watching files: {e}")
         

@@ -321,7 +321,16 @@ export class InventoryUI {
     async loadCharacterModel() {
         const loader = new THREE.GLTFLoader();
         try {
-            const gltf = await loader.loadAsync('glb/character/character.glb');
+            let modelPath = 'glb/character/character.glb';
+            
+            // Add cache-busting for development
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                const cacheBuster = Date.now();
+                modelPath = `${modelPath}?t=${cacheBuster}`;
+                console.log('[InventoryUI] Loading character model with cache-busting:', modelPath);
+            }
+            
+            const gltf = await loader.loadAsync(modelPath);
             
             // Create a group container exactly like in Player.js
             this.characterModel = new THREE.Group();

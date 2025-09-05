@@ -687,19 +687,28 @@ export class Interface {
             display: none;
             min-width: 250px;
             border: 1px solid #00ff00;
+            pointer-events: auto;
+            user-select: none;
         `;
         
         this.debugContent = document.createElement('div');
         this.debugOverlay.appendChild(this.debugContent);
+        
         document.body.appendChild(this.debugOverlay);
     }
 
     toggleDebugMode(enabled) {
+        console.log(`Debug: toggleDebugMode called with enabled=${enabled}`);
         this.debugMode = enabled;
         this.debugOverlay.style.display = enabled ? 'block' : 'none';
         
-        // No popup messages - cache busting comment
-        this.updateDebugInfo();
+        if (enabled) {
+            console.log('Debug: Debug mode enabled, updating info');
+            this.updateDebugInfo();
+            console.log('Debug: Debug overlay should now be visible');
+        } else {
+            console.log('Debug: Debug mode disabled');
+        }
     }
 
     updateDebugInfo() {

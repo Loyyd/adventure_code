@@ -46,7 +46,16 @@ export class Player {
     async loadCharacterModel() {
         const loader = new THREE.GLTFLoader();
         try {
-            const gltf = await loader.loadAsync('glb/character/character.glb');
+            let modelPath = 'glb/character/character.glb';
+            
+            // Add cache-busting for development environment
+            if (this.isDevelopment()) {
+                const cacheBuster = Date.now();
+                modelPath = `${modelPath}?t=${cacheBuster}`;
+                console.log(`[Player] Loading character with cache-bust: ${modelPath}`);
+            }
+            
+            const gltf = await loader.loadAsync(modelPath);
             const model = gltf.scene;
             model.traverse((node) => {
                 if (node.isMesh) {
