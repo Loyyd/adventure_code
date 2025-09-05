@@ -220,10 +220,60 @@ export class World {
     // NEW: Check collision with asset hitboxes
     checkAssetCollision(x, z, radius) {
         for (const hitbox of this.assetHitboxes) {
-            if (this.circleCircleCollision(x, z, radius, hitbox.x, hitbox.z, hitbox.radius)) {
-                return true;
+            if (hitbox.type === 'circle') {
+                // Use circle-circle collision for simple hitboxes
+                if (this.circleCircleCollision(x, z, radius, hitbox.x, hitbox.z, hitbox.radius)) {
+                    return true;
+                }
+            } else if (hitbox.type === 'mesh' && hitbox.mesh) {
+                // Use raycasting for mesh hitboxes
+                if (this.checkMeshCollision(x, z, radius, hitbox.mesh)) {
+                    return true;
+                }
             }
         }
+        return false;
+    }
+
+    // NEW: Check collision with a mesh hitbox using raycasting and geometry intersection
+    checkMeshCollision(x, z, radius, mesh) {
+        // Ensure the mesh has up-to-date world matrix
+        mesh.updateMatrixWorld(true);
+        
+        // Create a circle of test points around the player position
+        const numPoints = 8;
+        const testPoints = [{ x: x, z: z }]; // Center point
+        
+        // Add points around the circle
+        for (let i = 0; i < numPoints; i++) {
+            const angle = (i / numPoints) * Math.PI * 2;
+            testPoints.push({
+                x: x + Math.cos(angle) * radius,
+                z: z + Math.sin(angle) * radius
+            });
+        }
+
+        // Test each point by casting rays from above and below
+        for (const point of testPoints) {
+            // Cast ray from above
+            const rayOrigin = new THREE.Vector3(point.x, 50, point.z);
+            const rayDirection = new THREE.Vector3(0, -1, 0);
+            
+            this.raycaster.set(rayOrigin, rayDirection);
+            this.raycaster.far = 100;
+            
+            const intersects = this.raycaster.intersectObject(mesh, true);
+            
+            // If we hit the mesh and the intersection is at a reasonable height
+            if (intersects.length > 0) {
+                const intersectPoint = intersects[0].point;
+                // Check if the intersection is at ground level (roughly)
+                if (intersectPoint.y >= -1 && intersectPoint.y <= 5) {
+                    return true; // Collision detected
+                }
+            }
+        }
+        
         return false;
     }
 
@@ -290,6 +340,35 @@ export class World {
 
     // NEW: Add hitbox for an asset instance
     addAssetHitbox(instance, assetConfig, assetType) {
+        // Look for custom hitbox meshes in the asset
+        const hitboxMeshes = [];
+        instance.traverse((child) => {
+            if (child.isMesh && child.name && child.name.toLowerCase().includes('hitbox')) {
+                hitboxMeshes.push(child);
+            }
+        });
+
+        if (hitboxMeshes.length > 0) {
+            // Use custom hitbox meshes
+            for (const hitboxMesh of hitboxMeshes) {
+                // Make the original hitbox mesh invisible but keep it for collision
+                hitboxMesh.visible = false;
+                
+                // The hitbox mesh is already part of the asset instance hierarchy,
+                // so it will automatically inherit transformations
+                const hitbox = {
+                    mesh: hitboxMesh,
+                    type: 'mesh',
+                    instance: instance,
+                    originalMesh: hitboxMesh
+                };
+
+                this.assetHitboxes.push(hitbox);
+            }
+            return;
+        }
+
+        // Fallback to simple circular hitbox if no custom hitbox found
         const assetData = biomeAssets[assetType];
         if (!assetData || !assetData.hitbox) {
             return; // No hitbox defined for this asset
@@ -307,7 +386,7 @@ export class World {
             x: instance.position.x,
             z: instance.position.z,
             radius: radius,
-            type: hitboxConfig.type,
+            type: 'circle',
             instance: instance // Reference to the asset instance
         };
 
@@ -317,9 +396,17 @@ export class World {
 
     // NEW: Remove hitbox when asset is removed
     removeAssetHitbox(instance) {
-        const index = this.assetHitboxes.findIndex(hitbox => hitbox.instance === instance);
-        if (index !== -1) {
-            this.assetHitboxes.splice(index, 1);
+        const hitboxesToRemove = this.assetHitboxes.filter(hitbox => hitbox.instance === instance);
+        
+        for (const hitbox of hitboxesToRemove) {
+            // For mesh hitboxes, we just need to remove the reference since the mesh
+            // is part of the asset instance hierarchy and will be removed with the asset
+            
+            // Remove from the hitboxes array
+            const index = this.assetHitboxes.indexOf(hitbox);
+            if (index !== -1) {
+                this.assetHitboxes.splice(index, 1);
+            }
         }
     }
 
@@ -392,22 +479,44 @@ export class World {
             this.debugHitboxHelpers.push(wireframe);
         }
 
-        // NEW: Add asset hitbox helpers (blue circles)
+        // NEW: Add asset hitbox helpers
         for (const hitbox of this.assetHitboxes) {
-            const geometry = new THREE.RingGeometry(hitbox.radius - 0.05, hitbox.radius + 0.05, 32);
-            const material = new THREE.MeshBasicMaterial({
-                color: 0x0066ff,
-                transparent: true,
-                opacity: 0.6,
-                side: THREE.DoubleSide
-            });
+            if (hitbox.type === 'circle') {
+                // Blue circles for simple circular hitboxes
+                const geometry = new THREE.RingGeometry(hitbox.radius - 0.05, hitbox.radius + 0.05, 32);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x0066ff,
+                    transparent: true,
+                    opacity: 0.6,
+                    side: THREE.DoubleSide
+                });
 
-            const helper = new THREE.Mesh(geometry, material);
-            helper.rotation.x = -Math.PI / 2; // Rotate to lie flat on ground
-            helper.position.set(hitbox.x, 0.01, hitbox.z); // Slightly above ground
-            
-            this.scene.add(helper);
-            this.debugAssetHitboxHelpers.push(helper);
+                const helper = new THREE.Mesh(geometry, material);
+                helper.rotation.x = -Math.PI / 2; // Rotate to lie flat on ground
+                helper.position.set(hitbox.x, 0.01, hitbox.z); // Slightly above ground
+                
+                this.scene.add(helper);
+                this.debugAssetHitboxHelpers.push(helper);
+            } else if (hitbox.type === 'mesh' && hitbox.mesh) {
+                // Green wireframes for custom mesh hitboxes
+                const wireframeGeometry = hitbox.mesh.geometry.clone();
+                const wireframeMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+                
+                // Copy transform from the hitbox mesh
+                wireframe.position.copy(hitbox.mesh.position);
+                wireframe.rotation.copy(hitbox.mesh.rotation);
+                wireframe.scale.copy(hitbox.mesh.scale);
+                wireframe.updateMatrixWorld(true);
+                
+                this.scene.add(wireframe);
+                this.debugAssetHitboxHelpers.push(wireframe);
+            }
         }
         
         console.log(`[Debug] ${show ? 'Showing' : 'Hiding'} ${this.debugHitboxHelpers.length} map hitboxes and ${this.debugAssetHitboxHelpers.length} asset hitboxes`);
