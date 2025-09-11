@@ -4,10 +4,11 @@ import { Interface } from './ui/Interface.js';
 import { Controls } from './utils/Controls.js';
 import { Camera } from './utils/Camera.js';
 import { DayNightCycle } from './game/DayNightCycle.js';
+import { StageManager } from './game/StageManager.js';
 import { biomes } from './game/Biomes.js';
 
 let scene, renderer;
-let world, player, ui, controls, cameraController, dayNightCycle;
+let world, player, ui, controls, cameraController, dayNightCycle, stageManager;
 let currentBiome = 'OPEN FIELDS';
 const clock = new THREE.Clock();
 let outlinePass, composer;
@@ -25,6 +26,7 @@ function init() {
     controls = new Controls();
     cameraController = new Camera(window.innerWidth, window.innerHeight);
     dayNightCycle = new DayNightCycle(scene);
+    stageManager = new StageManager(world, player);
     
     // Store references globally for asset removal and UI updates
     window.gameWorld = world;
@@ -33,6 +35,7 @@ function init() {
     window.gameInterface = ui;
     window.gameCamera = cameraController;
     window.gameNPCManager = world.npcManager;
+    window.gameStageManager = stageManager;
     
     // Set up UI callbacks
     player.setInteractionProgressCallback((elapsed, duration, targetPosition, assetType) => {
@@ -316,6 +319,7 @@ function animate() {
     player.update(deltaTime);
     world.updateCampfires(); // Update campfire particles and lighting
     world.updateNPCs(deltaTime, player.position); // Update NPCs
+    stageManager.checkStageProgression(); // Check stage completion
     dayNightCycle.update(deltaTime);
     ui.updateTimeInfo(dayNightCycle.getTimeString(), dayNightCycle.getCurrentPeriod(), dayNightCycle.timeSpeed);
     

@@ -93,6 +93,9 @@ export class DebugMenu {
         
         // Add container to debug overlay
         this.debugOverlay.appendChild(this.itemButtonsContainer);
+        
+        // Create stage buttons
+        this.createStageButtons();
     }
     
     setButtonContent(button, icon, label) {
@@ -308,6 +311,64 @@ export class DebugMenu {
         
         if (window.gameCamera) {
             // Camera debug info can be logged if needed for debugging
+        }
+    }
+    
+    createStageButtons() {
+        // Create container for stage buttons
+        this.stageButtonsContainer = document.createElement('div');
+        this.stageButtonsContainer.style.cssText = `
+            margin-top: 12px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 6px;
+            border-top: 1px solid #00ff00;
+            padding-top: 8px;
+        `;
+        
+        // Create label for stage section
+        const stageLabel = document.createElement('div');
+        stageLabel.textContent = 'Stage Skip:';
+        stageLabel.style.cssText = `
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            margin-bottom: 6px;
+            width: 100%;
+        `;
+        this.stageButtonsContainer.appendChild(stageLabel);
+        
+        // Create stage buttons 1, 2, 3
+        for (let i = 1; i <= 3; i++) {
+            const stageButton = document.createElement('button');
+            stageButton.style.cssText = this.getButtonStyle();
+            stageButton.textContent = i.toString();
+            stageButton.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.skipToStage(i);
+            };
+            this.addButtonHoverEffects(stageButton);
+            this.stageButtonsContainer.appendChild(stageButton);
+        }
+        
+        // Add stage buttons container to debug overlay
+        this.debugOverlay.appendChild(this.stageButtonsContainer);
+    }
+    
+    skipToStage(stageNumber) {
+        // Use the global stage manager
+        if (window.gameStageManager) {
+            const success = window.gameStageManager.skipToStage(stageNumber);
+            if (!success) {
+                console.error(`Failed to skip to stage ${stageNumber}`);
+            }
+        } else {
+            console.error("Stage manager not available");
+            if (window.gameInterface) {
+                window.gameInterface.showMessage("Error: Stage manager not available", 2000);
+            }
         }
     }
 }

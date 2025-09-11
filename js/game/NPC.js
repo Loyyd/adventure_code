@@ -94,7 +94,7 @@ export class NPC {
         const context = canvas.getContext('2d');
         
         // Set canvas size
-        canvas.width = 256;
+        canvas.width = 128;
         canvas.height = 64;
         
         // Style the text
