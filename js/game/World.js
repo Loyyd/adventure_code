@@ -413,6 +413,50 @@ export class World {
                 this.assetHitboxes.splice(index, 1);
             }
         }
+        
+        // NEW: Also remove corresponding debug wireframes if debug mode is active
+        if (this.debugAssetHitboxHelpers && this.debugAssetHitboxHelpers.length > 0) {
+            // Find and remove wireframes associated with this instance
+            const wireframesToRemove = [];
+            
+            for (let i = this.debugAssetHitboxHelpers.length - 1; i >= 0; i--) {
+                const helper = this.debugAssetHitboxHelpers[i];
+                
+                // Check if this wireframe corresponds to the removed instance
+                // We need to check if the helper's position matches any of the removed hitboxes
+                for (const hitbox of hitboxesToRemove) {
+                    let shouldRemove = false;
+                    
+                    if (hitbox.type === 'circle') {
+                        // For circular hitboxes, check if positions match
+                        const distance = Math.sqrt(
+                            Math.pow(helper.position.x - hitbox.x, 2) + 
+                            Math.pow(helper.position.z - hitbox.z, 2)
+                        );
+                        if (distance < 0.1) { // Small tolerance for floating point comparison
+                            shouldRemove = true;
+                        }
+                    } else if (hitbox.type === 'mesh' && hitbox.mesh) {
+                        // For mesh hitboxes, check if the wireframe geometry matches
+                        // or if the position is close to the asset instance position
+                        const instancePos = instance.position;
+                        const distance = Math.sqrt(
+                            Math.pow(helper.position.x - instancePos.x, 2) + 
+                            Math.pow(helper.position.z - instancePos.z, 2)
+                        );
+                        if (distance < 1.0) { // Larger tolerance for mesh-based hitboxes
+                            shouldRemove = true;
+                        }
+                    }
+                    
+                    if (shouldRemove) {
+                        this.scene.remove(helper);
+                        this.debugAssetHitboxHelpers.splice(i, 1);
+                        break; // Break out of hitbox loop since we found a match
+                    }
+                }
+            }
+        }
     }
 
     // Debug helper: show/hide hitbox wireframes
