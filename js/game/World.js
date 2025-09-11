@@ -354,14 +354,12 @@ export class World {
 
         // Determine if this asset allows walk-through (no collision)
         const isWalkThrough = assetData.walkThrough === true;
-        console.log(`[World] Creating hitbox for ${assetType} with walkThrough=${isWalkThrough}`);
 
         // Look for custom hitbox meshes in the asset using the new naming convention
         const hitboxMeshes = [];
         instance.traverse((child) => {
             if (child.isMesh && child.name && child.name.toLowerCase().includes('hitbox')) {
                 hitboxMeshes.push(child);
-                console.log(`[World] Found hitbox mesh: ${child.name} for asset type: ${assetType}`);
             }
         });
 
@@ -382,16 +380,12 @@ export class World {
                 };
 
                 this.assetHitboxes.push(hitbox);
-                console.log(`[World] Added mesh hitbox for ${assetType} at position (${instance.position.x}, ${instance.position.z}) walkThrough=${isWalkThrough}`);
             }
             return;
         }
 
-        console.log(`[World] No custom hitbox found for ${assetType}, using fallback circular hitbox`);
-        
         // Fallback to simple circular hitbox if no custom hitbox found
         if (!assetData.hitbox) {
-            console.log(`[World] No hitbox configuration found for ${assetType}, skipping hitbox creation`);
             return; // No hitbox defined for this asset
         }
 
@@ -413,7 +407,6 @@ export class World {
         };
 
         this.assetHitboxes.push(hitbox);
-        console.log(`[World] Added circular hitbox for ${assetType} with radius ${radius} walkThrough=${isWalkThrough}`);
         return hitbox;
     }
 
@@ -596,8 +589,6 @@ export class World {
                 this.debugAssetHitboxHelpers.push(wireframe);
             }
         }
-        
-        console.log(`[Debug] ${show ? 'Showing' : 'Hiding'} ${this.debugHitboxHelpers.length} map hitboxes and ${this.debugAssetHitboxHelpers.length} asset hitboxes`);
     }
 
     async loadModel(assetType) {
@@ -653,7 +644,6 @@ export class World {
             }
 
             // Debug: Log what's in each variation (less verbose)
-            console.log(`[World] Loaded ${variations.length} variations for ${assetType}`);
             
             // Store all variations
             this.loadedModels.set(assetType, variations);
@@ -722,15 +712,12 @@ export class World {
         
         const scaleRange = assetData.scale[assetConfig.scale];
         if (!scaleRange) {
-            //console.error(`Scale range '${assetConfig.scale}' not found for asset type: ${assetType}`);
-            //console.log('Available scales:', Object.keys(assetData.scale));
             return [];
         }
         
         const colorValue = assetData.colors[assetConfig.color];
         if (colorValue === undefined) {
             console.error(`Color '${assetConfig.color}' not found for asset type: ${assetType}`);
-            console.log('Available colors:', Object.keys(assetData.colors));
             return [];
         }
         
@@ -758,14 +745,6 @@ export class World {
                         const variations = Array.isArray(model) ? model : [model];
                         const randomVariation = variations[Math.floor(Math.random() * variations.length)];
                         const instance = randomVariation.clone();
-                        
-                        // Debug: Log what's in this instance
-                        console.log(`[World] Creating ${assetType} instance from variation: ${randomVariation.name || 'unnamed'}`);
-                        instance.traverse((child) => {
-                            if (child.isMesh) {
-                                console.log(`[World] Found mesh in instance: ${child.name || 'unnamed mesh'}`);
-                            }
-                        });
                         
                         instance.position.set(point.x, point.y, point.z);
                         instance.rotation.y = Math.random() * Math.PI * 2;

@@ -111,13 +111,15 @@ export class Inventory {
     }
 
     displayInventory() {
-        console.log('Current Inventory:');
+        // Console display for debugging purposes - could be replaced with UI display
         if (this.items.size === 0) {
-            console.log('  Empty');
+            return 'Empty';
         } else {
+            const items = [];
             for (const [item, quantity] of this.items) {
-                console.log(`  ${item}: ${quantity}`);
+                items.push(`${item}: ${quantity}`);
             }
+            return items.join(', ');
         }
     }
 

@@ -139,16 +139,13 @@ export class DebugMenu {
         const player = window.gamePlayer || this.player;
         
         if (player && player.inventory) {
-            console.log(`Debug: Attempting to add ${quantity} ${itemType}(s) to player inventory`);
             const added = player.inventory.addItem(itemType, quantity);
             if (added) {
-                console.log(`Debug: Successfully added ${quantity} ${itemType}(s) to player inventory`);
                 // Show notification if UI is available
                 if (window.gameInterface) {
                     window.gameInterface.showItemNotification([`${quantity} ${itemType}(s)`]);
                 }
             } else {
-                console.log(`Debug: Could not add ${itemType} to inventory. It may be full or player already has this tool.`);
                 // Show a message explaining why it couldn't be added
                 if (window.gameInterface) {
                     if (player.inventory.toolTypes && player.inventory.toolTypes.has(itemType) && player.inventory.items.has(itemType)) {
@@ -310,12 +307,7 @@ export class DebugMenu {
         this.updateDebugInfo();
         
         if (window.gameCamera) {
-            const cam = window.gameCamera.camera;
-            console.log('Camera Debug Info:');
-            console.log('Position:', cam.position);
-            console.log('Looking at:', this.debugContent);
-            console.log('Zoom:', window.gameCamera.currentZoom);
-            console.log('Fly mode:', window.gameCamera.flyMode);
+            // Camera debug info can be logged if needed for debugging
         }
     }
 }
