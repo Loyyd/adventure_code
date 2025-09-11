@@ -220,6 +220,11 @@ export class World {
     // NEW: Check collision with asset hitboxes
     checkAssetCollision(x, z, radius) {
         for (const hitbox of this.assetHitboxes) {
+            // Skip hitboxes that allow walk-through
+            if (hitbox.walkThrough === true) {
+                continue;
+            }
+            
             if (hitbox.type === 'circle') {
                 // Use circle-circle collision for simple hitboxes
                 if (this.circleCircleCollision(x, z, radius, hitbox.x, hitbox.z, hitbox.radius)) {
@@ -340,6 +345,17 @@ export class World {
 
     // NEW: Add hitbox for an asset instance
     addAssetHitbox(instance, assetConfig, assetType) {
+        // Get asset data from biome configuration
+        const assetData = biomeAssets[assetType];
+        if (!assetData) {
+            console.warn(`[World] Unknown asset type: ${assetType}`);
+            return;
+        }
+
+        // Determine if this asset allows walk-through (no collision)
+        const isWalkThrough = assetData.walkThrough === true;
+        console.log(`[World] Creating hitbox for ${assetType} with walkThrough=${isWalkThrough}`);
+
         // Look for custom hitbox meshes in the asset using the new naming convention
         const hitboxMeshes = [];
         instance.traverse((child) => {
@@ -361,11 +377,12 @@ export class World {
                     mesh: hitboxMesh,
                     type: 'mesh',
                     instance: instance,
-                    originalMesh: hitboxMesh
+                    originalMesh: hitboxMesh,
+                    walkThrough: isWalkThrough // Add walkThrough property
                 };
 
                 this.assetHitboxes.push(hitbox);
-                console.log(`[World] Added mesh hitbox for ${assetType} at position (${instance.position.x}, ${instance.position.z})`);
+                console.log(`[World] Added mesh hitbox for ${assetType} at position (${instance.position.x}, ${instance.position.z}) walkThrough=${isWalkThrough}`);
             }
             return;
         }
@@ -373,8 +390,8 @@ export class World {
         console.log(`[World] No custom hitbox found for ${assetType}, using fallback circular hitbox`);
         
         // Fallback to simple circular hitbox if no custom hitbox found
-        const assetData = biomeAssets[assetType];
-        if (!assetData || !assetData.hitbox) {
+        if (!assetData.hitbox) {
+            console.log(`[World] No hitbox configuration found for ${assetType}, skipping hitbox creation`);
             return; // No hitbox defined for this asset
         }
 
@@ -391,11 +408,12 @@ export class World {
             z: instance.position.z,
             radius: radius,
             type: 'circle',
-            instance: instance // Reference to the asset instance
+            instance: instance, // Reference to the asset instance
+            walkThrough: isWalkThrough // Add walkThrough property
         };
 
         this.assetHitboxes.push(hitbox);
-        console.log(`[World] Added circular hitbox for ${assetType} with radius ${radius}`);
+        console.log(`[World] Added circular hitbox for ${assetType} with radius ${radius} walkThrough=${isWalkThrough}`);
         return hitbox;
     }
 
@@ -531,10 +549,11 @@ export class World {
         // NEW: Add asset hitbox helpers
         for (const hitbox of this.assetHitboxes) {
             if (hitbox.type === 'circle') {
-                // Blue circles for simple circular hitboxes
+                // Different colors based on walkThrough property
+                const color = hitbox.walkThrough === true ? 0x00ff00 : 0x0066ff; // Green for walkthrough, blue for collision
                 const geometry = new THREE.RingGeometry(hitbox.radius - 0.05, hitbox.radius + 0.05, 32);
                 const material = new THREE.MeshBasicMaterial({
-                    color: 0x0066ff,
+                    color: color,
                     transparent: true,
                     opacity: 0.6,
                     side: THREE.DoubleSide
@@ -547,10 +566,11 @@ export class World {
                 this.scene.add(helper);
                 this.debugAssetHitboxHelpers.push(helper);
             } else if (hitbox.type === 'mesh' && hitbox.mesh) {
-                // Green wireframes for custom mesh hitboxes
+                // Different colors for mesh hitboxes based on walkThrough property
+                const color = hitbox.walkThrough === true ? 0x00ff00 : 0x0066ff; // Green for walkthrough, blue for collision
                 const wireframeGeometry = hitbox.mesh.geometry.clone();
                 const wireframeMaterial = new THREE.MeshBasicMaterial({
-                    color: 0x00ff00,
+                    color: color,
                     wireframe: true,
                     transparent: true,
                     opacity: 0.8
