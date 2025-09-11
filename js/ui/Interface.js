@@ -6,6 +6,7 @@ export class Interface {
     constructor(player) {
         this.player = player;
         this.biomeElement = document.getElementById('currentBiome');
+        this.currentShopNPC = null; // Track current NPC shop interaction
         
         // Check if required DOM elements exist
         if (!this.biomeElement) {
@@ -755,6 +756,288 @@ export class Interface {
         
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
+    }
+
+    showNPCShop(npc) {
+        // Create modal dialog for NPC shop
+        this.currentShopNPC = npc;
+        const overlay = document.createElement('div');
+        overlay.id = 'npcShopOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 3500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 30, 30, 0.9));
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            font-family: Arial, sans-serif;
+            max-width: 450px;
+            min-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 2px solid #444;
+        `;
+        
+        // Shop header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #555;
+        `;
+        
+        const title = document.createElement('div');
+        title.style.cssText = `
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        `;
+        title.textContent = `🏪 ${npc.name}'s Shop`;
+        
+        const subtitle = document.createElement('div');
+        subtitle.style.cssText = `
+            font-size: 14px;
+            color: #ccc;
+            font-style: italic;
+        `;
+        subtitle.textContent = 'Tools for your adventures';
+        
+        header.appendChild(title);
+        header.appendChild(subtitle);
+        
+        // Currency display
+        const currencyContainer = document.createElement('div');
+        currencyContainer.style.cssText = `
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        `;
+        
+        const currencyText = document.createElement('div');
+        currencyText.style.cssText = `
+            font-size: 16px;
+            color: #ffd700;
+        `;
+        const playerSticks = window.gamePlayer?.inventory?.getItemCount('sticks') || 0;
+        currencyText.textContent = `Your Sticks: ${playerSticks} 🪵`;
+        
+        currencyContainer.appendChild(currencyText);
+        
+        // Shop items container
+        const itemsContainer = document.createElement('div');
+        itemsContainer.style.cssText = `
+            margin-bottom: 20px;
+        `;
+        
+        // Create shop items
+        const shopItems = npc.getShopItems();
+        shopItems.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = `
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 15px;
+                margin-bottom: 10px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                transition: background 0.2s ease;
+            `;
+            
+            const leftSection = document.createElement('div');
+            leftSection.style.cssText = `
+                display: flex;
+                align-items: center;
+                flex: 1;
+            `;
+            
+            const icon = document.createElement('div');
+            icon.style.cssText = `
+                font-size: 32px;
+                margin-right: 15px;
+            `;
+            icon.textContent = item.icon;
+            
+            const itemInfo = document.createElement('div');
+            itemInfo.style.cssText = `
+                flex: 1;
+            `;
+            
+            const itemName = document.createElement('div');
+            itemName.style.cssText = `
+                font-size: 16px;
+                font-weight: bold;
+                color: #fff;
+                margin-bottom: 3px;
+            `;
+            itemName.textContent = item.name;
+            
+            const itemDesc = document.createElement('div');
+            itemDesc.style.cssText = `
+                font-size: 12px;
+                color: #bbb;
+            `;
+            itemDesc.textContent = item.description;
+            
+            itemInfo.appendChild(itemName);
+            itemInfo.appendChild(itemDesc);
+            
+            const rightSection = document.createElement('div');
+            rightSection.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            `;
+            
+            const price = document.createElement('div');
+            price.style.cssText = `
+                font-size: 14px;
+                color: #ffd700;
+                font-weight: bold;
+                text-align: right;
+                min-width: 60px;
+            `;
+            price.textContent = `${item.price} 🪵`;
+            
+            const buyButton = document.createElement('button');
+            const canAfford = npc.canAffordItem(item, window.gamePlayer?.inventory);
+            const alreadyHas = window.gamePlayer?.inventory?.getItemCount(item.id) > 0;
+            
+            buyButton.style.cssText = `
+                background: ${canAfford && !alreadyHas ? 'rgba(0, 150, 0, 0.8)' : 'rgba(100, 100, 100, 0.5)'};
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                font-size: 12px;
+                cursor: ${canAfford && !alreadyHas ? 'pointer' : 'not-allowed'};
+                transition: background 0.2s ease;
+                font-family: Arial, sans-serif;
+                min-width: 60px;
+            `;
+            
+            if (alreadyHas) {
+                buyButton.textContent = 'Owned';
+                buyButton.disabled = true;
+            } else if (canAfford) {
+                buyButton.textContent = 'Buy';
+                buyButton.addEventListener('mouseenter', () => {
+                    buyButton.style.background = 'rgba(0, 180, 0, 0.9)';
+                });
+                buyButton.addEventListener('mouseleave', () => {
+                    buyButton.style.background = 'rgba(0, 150, 0, 0.8)';
+                });
+            } else {
+                buyButton.textContent = 'Need More';
+                buyButton.disabled = true;
+            }
+            
+            // Buy button click handler
+            if (canAfford && !alreadyHas) {
+                buyButton.addEventListener('click', () => {
+                    if (npc.purchaseItem(item, window.gamePlayer.inventory)) {
+                        // Purchase successful - refresh the shop display
+                        this.hideNPCShop();
+                        this.showNPCShop(npc);
+                        
+                        // Show success message
+                        this.showMessage(`Purchased ${item.name}! Check your inventory.`, 2000);
+                    }
+                });
+            }
+            
+            leftSection.appendChild(icon);
+            leftSection.appendChild(itemInfo);
+            rightSection.appendChild(price);
+            rightSection.appendChild(buyButton);
+            
+            itemDiv.appendChild(leftSection);
+            itemDiv.appendChild(rightSection);
+            itemsContainer.appendChild(itemDiv);
+        });
+        
+        // Close button
+        const closeButton = document.createElement('button');
+        closeButton.style.cssText = `
+            width: 100%;
+            background: rgba(150, 0, 0, 0.8);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-family: Arial, sans-serif;
+        `;
+        closeButton.textContent = 'Close Shop';
+        
+        closeButton.addEventListener('mouseenter', () => {
+            closeButton.style.background = 'rgba(180, 0, 0, 0.9)';
+        });
+        closeButton.addEventListener('mouseleave', () => {
+            closeButton.style.background = 'rgba(150, 0, 0, 0.8)';
+        });
+        
+        closeButton.addEventListener('click', () => {
+            this.hideNPCShop();
+        });
+        
+        // ESC key to close
+        const handleKeyPress = (event) => {
+            if (event.key === 'Escape') {
+                this.hideNPCShop();
+            }
+        };
+        document.addEventListener('keydown', handleKeyPress);
+        
+        // Store cleanup function
+        overlay.cleanup = () => {
+            document.removeEventListener('keydown', handleKeyPress);
+        };
+        
+        // Assemble the dialog
+        dialog.appendChild(header);
+        dialog.appendChild(currencyContainer);
+        dialog.appendChild(itemsContainer);
+        dialog.appendChild(closeButton);
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+    }
+
+    hideNPCShop() {
+        const overlay = document.getElementById('npcShopOverlay');
+        if (overlay) {
+            if (overlay.cleanup) {
+                overlay.cleanup();
+            }
+            document.body.removeChild(overlay);
+        }
+        
+        // End NPC interaction WITHOUT calling endInteraction() to avoid circular call
+        if (this.currentShopNPC) {
+            this.currentShopNPC.state = 'wandering';
+            this.currentShopNPC.isShopOpen = false;
+            this.currentShopNPC = null;
+        }
     }
 
     toggleDebugMode(enabled) {

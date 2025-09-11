@@ -1,5 +1,6 @@
 import { biomes } from './Biomes.js';
 import { biomeAssets } from './BiomeAssets.js';
+import { NPCManager } from './NPCManager.js';
 
 export class World {
     constructor(scene) {
@@ -15,6 +16,9 @@ export class World {
         // NEW: Asset hitboxes for collision detection
         this.assetHitboxes = []; // Array of hitbox objects for assets
         this.debugAssetHitboxHelpers = []; // Visual helpers for asset hitboxes (debug)
+        
+        // NPC Management
+        this.npcManager = new NPCManager(scene, this);
         
         // Clear model cache on development refresh
         if (this.isDevelopment()) {
@@ -814,6 +818,9 @@ export class World {
         // Mark as active
         campfire.userData.isActive = true;
 
+        // NEW: Spawn Bob NPC when campfire is activated
+        this.npcManager.spawnBob(campfire.position);
+
         return true;
     }
 
@@ -907,6 +914,11 @@ export class World {
                 }
             });
         }
+    }
+
+    // NEW: Update NPCs
+    updateNPCs(deltaTime, playerPosition) {
+        this.npcManager.update(deltaTime, playerPosition);
     }
 
     updateCampfireParticles(campfire) {

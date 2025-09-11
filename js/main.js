@@ -32,6 +32,7 @@ function init() {
     window.gameDayNight = dayNightCycle;
     window.gameInterface = ui;
     window.gameCamera = cameraController;
+    window.gameNPCManager = world.npcManager;
     
     // Set up UI callbacks
     player.setInteractionProgressCallback((elapsed, duration, targetPosition, assetType) => {
@@ -208,6 +209,18 @@ function checkHover() {
             });
         }
     }
+
+    // Also add NPC meshes for hover detection (but we'll handle them separately)
+    const npcMeshes = [];
+    if (world.npcManager && world.npcManager.npcs) {
+        for (const npc of world.npcManager.npcs.values()) {
+            npc.mesh.traverse(child => {
+                if (child.isMesh && !child.material.map) { // Exclude nametag sprites
+                    npcMeshes.push({ mesh: child, npc: npc });
+                }
+            });
+        }
+    }
     
     const intersects = raycaster.intersectObjects(objectsToTest, false);
     
@@ -256,8 +269,26 @@ function checkHover() {
             outlinePass.selectedObjects = [];
         }
     } else {
-        hoveredObject = null;
-        outlinePass.selectedObjects = [];
+        // Check for NPC hover separately
+        const npcIntersects = raycaster.intersectObjects(npcMeshes.map(item => item.mesh), false);
+        if (npcIntersects.length > 0) {
+            // Find which NPC was hit
+            const hitMesh = npcIntersects[0].object;
+            const npcData = npcMeshes.find(item => item.mesh === hitMesh);
+            if (npcData && npcData.npc.isPlayerInInteractionRange(player.position)) {
+                // Highlight the NPC with a different color
+                hoveredObject = npcData.npc.mesh;
+                outlinePass.visibleEdgeColor.set(0x00ff00); // Green outline for NPCs
+                outlinePass.hiddenEdgeColor.set(0x00ff00);
+                outlinePass.selectedObjects = [npcData.npc.mesh];
+            } else {
+                hoveredObject = null;
+                outlinePass.selectedObjects = [];
+            }
+        } else {
+            hoveredObject = null;
+            outlinePass.selectedObjects = [];
+        }
     }
 }
 
@@ -284,6 +315,7 @@ function animate() {
     handleMovement();
     player.update(deltaTime);
     world.updateCampfires(); // Update campfire particles and lighting
+    world.updateNPCs(deltaTime, player.position); // Update NPCs
     dayNightCycle.update(deltaTime);
     ui.updateTimeInfo(dayNightCycle.getTimeString(), dayNightCycle.getCurrentPeriod(), dayNightCycle.timeSpeed);
     
