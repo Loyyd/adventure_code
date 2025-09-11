@@ -17,19 +17,24 @@ export class Inventory {
         this.itemDrops.set('grass', [
             { item: 'seeds', probability: 0.50, quantity: 1 },
             { item: 'sticks', probability: 0.30, quantity: 1 },
-            { item: 'seeds', probability: 0.50, quantity: 1 }
+            { item: 'sticks', probability: 0.30, quantity: 1 },
+            { item: 'sticks', probability: 0.30, quantity: 1 },
         ]);
         
         this.itemDrops.set('bush', [
-            { item: 'berries', probability: 0.40, quantity: 2 },
-            { item: 'sticks', probability: 0.40, quantity: 1 },
+            { item: 'berries', probability: 0.30, quantity: 2 },
+            { item: 'berries', probability: 0.30, quantity: 1 },
+            { item: 'sticks', probability: 0.30, quantity: 1 },
             { item: 'sticks', probability: 0.30, quantity: 1 },
             { item: 'seeds', probability: 0.20, quantity: 1 }
         ]);
         
         this.itemDrops.set('tree', [
-            { item: 'wood', probability: 0.80, quantity: 3 },
-            { item: 'sticks', probability: 0.60, quantity: 2 }
+            { item: 'wood', probability: 1.00, quantity: 1 },
+            { item: 'wood', probability: 0.60, quantity: 1 },
+            { item: 'wood', probability: 0.30, quantity: 1 },
+            { item: 'sticks', probability: 0.60, quantity: 2 },
+            { item: 'sticks', probability: 0.30, quantity: 1 }
         ]);
         
         this.itemDrops.set('rock', [
