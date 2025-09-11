@@ -136,7 +136,7 @@ export class Controls {
     }
 
     getMovement() {
-        const speed = 0.1;
+        const speed = 0.05;
         let movement = { x: 0, z: 0, moved: false };
 
         if (this.keys['KeyW'] || this.keys['ArrowUp']) {
