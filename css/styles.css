@@ -53,6 +53,11 @@ body {
     transition: all 0.3s ease;
 }
 
+.hotbar-slot:focus-visible {
+    outline: 3px solid #ecf0f1;
+    outline-offset: 3px;
+}
+
 /* Custom scrollbar for inventory */
 .inventory-grid::-webkit-scrollbar {
     width: 8px;
