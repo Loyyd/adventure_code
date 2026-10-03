@@ -183,6 +183,7 @@ export class InventoryUI {
         // Create close button
         const closeButton = document.createElement('button');
         closeButton.innerHTML = '×';
+        closeButton.setAttribute('aria-label', 'Close inventory');
         closeButton.style.cssText = `
             position: absolute;
             top: 15px;
@@ -238,9 +239,16 @@ export class InventoryUI {
         // Create hotbar slots
         this.hotbarSlotElements = [];
         for (let i = 0; i < this.hotbarSlots; i++) {
-            const slot = document.createElement('div');
+            const slot = document.createElement('button');
+            slot.type = 'button';
             slot.className = 'hotbar-slot';
+            slot.setAttribute('aria-pressed', String(i === this.selectedHotbarSlot));
+            slot.addEventListener('click', () => this.selectHotbarSlot(i));
             slot.style.cssText = `
+                box-sizing: content-box;
+                padding: 0;
+                font-family: inherit;
+                cursor: pointer;
                 width: 80px;
                 height: 80px;
                 background: rgba(0, 0, 0, 0.7);
@@ -458,8 +466,10 @@ export class InventoryUI {
         
         // Update visual selection
         this.hotbarSlotElements[this.selectedHotbarSlot].style.borderColor = '#34495e';
+        this.hotbarSlotElements[this.selectedHotbarSlot].setAttribute('aria-pressed', 'false');
         this.selectedHotbarSlot = slotIndex;
         this.hotbarSlotElements[this.selectedHotbarSlot].style.borderColor = '#3498db';
+        this.hotbarSlotElements[this.selectedHotbarSlot].setAttribute('aria-pressed', 'true');
         
         // Update player's selected tool
         this.updatePlayerSelectedTool();
@@ -507,6 +517,7 @@ export class InventoryUI {
             slot.appendChild(slotNumber);
             
             const item = this.hotbarItems[i];
+            slot.setAttribute('aria-label', `Slot ${i + 1}: ${item ? item.item.replace('_', ' ') : 'empty'}`);
             if (item) {
                 // Create item icon
                 const itemIcon = document.createElement('div');
@@ -725,6 +736,7 @@ export class InventoryUI {
     }
 
     openInventory() {
+        window.gameControls?.resetInput();
         this.isOpen = true;
         this.inventoryModal.style.display = 'block';
         

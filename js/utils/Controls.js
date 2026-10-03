@@ -12,12 +12,25 @@ export class Controls {
 
     setupEventListeners() {
         document.addEventListener('keydown', (e) => {
-            this.keys[e.code] = true;
+            if (e.target.closest?.('input, textarea, select, [contenteditable="true"]') ||
+                e.ctrlKey || e.metaKey || e.altKey) {
+                return;
+            }
             
             // Handle inventory toggle
             if (e.code === 'KeyI' && this.onInventoryToggle) {
-                this.onInventoryToggle();
+                e.preventDefault();
+                if (!e.repeat) {
+                    this.resetInput();
+                    this.onInventoryToggle();
+                }
+                return;
             }
+
+            if (window.gameInterface?.inventoryUI?.isOpen) return;
+            if (e.code.startsWith('Arrow')) e.preventDefault();
+            this.keys[e.code] = true;
+            if (e.repeat) return;
             
             // Handle debug mode toggle (P key)
             if (e.code === 'KeyP') {
@@ -76,6 +89,10 @@ export class Controls {
         });
         
         document.addEventListener('keyup', (e) => this.keys[e.code] = false);
+        window.addEventListener('blur', () => this.resetInput());
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) this.resetInput();
+        });
         
         // Track mouse position
         document.addEventListener('mousemove', (e) => {
@@ -85,9 +102,11 @@ export class Controls {
         
         // Add mouse click listener
         document.addEventListener('mousedown', (e) => {
+            if (window.gameInterface?.inventoryUI?.isOpen) return;
             // Don't interfere with UI elements at all
             if (e.target.tagName === 'BUTTON' || 
                 e.target.closest('button') ||
+                e.target.closest('#hotbar') ||
                 e.target.closest('#debugOverlay') ||
                 e.target.closest('#externalDebugButtons') ||
                 e.target.closest('#inventoryModal') ||
@@ -103,18 +122,6 @@ export class Controls {
         });
         
         document.addEventListener('mouseup', (e) => {
-            // Don't interfere with UI elements at all
-            if (e.target.tagName === 'BUTTON' || 
-                e.target.closest('button') ||
-                e.target.closest('#debugOverlay') ||
-                e.target.closest('#externalDebugButtons') ||
-                e.target.closest('#inventoryModal') ||
-                e.target.id === 'debugOverlay' ||
-                e.target.id === 'externalDebugButtons') {
-                // Silently ignore UI interactions
-                return;
-            }
-            
             if (e.button === 0) { // Left click
                 this.isInteracting = false;
             }
@@ -133,6 +140,11 @@ export class Controls {
                 return;
             }
         }, false); // Use bubbling phase to avoid preventing target handlers
+    }
+
+    resetInput() {
+        this.keys = {};
+        this.isInteracting = false;
     }
 
     getMovement() {
